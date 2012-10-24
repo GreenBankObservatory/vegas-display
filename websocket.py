@@ -3,39 +3,13 @@ import tornado.web
 import tornado.ioloop
 from multiprocessing import Process
 import time
+import os
 
 from pyzmq_stream_poller import *
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        html = """
-<html>
-  <head>
-    <title>Websocket - toy</title>
-    <script type="text/javascript">
-      window.onload = function() {
-        var ws = new WebSocket("ws://192.168.28.128:8888/websocket");
-        ws.onopen = function() {
-          //ws.send("Hello, world");
-        };
-        ws.onmessage = function (evt) {
-          if (evt.data == 'close'){
-            ws.close();
-          } else {
-            var data = eval(evt.data);
-            console.log(data[0], data[1].length);
-            ws.send(data[0]);
-          }
-        };
-      }
-    </script>
-  </head>
-  <body>
-  </body>
-</html>
-
-        """
-        self.write(html)
+        self.render("index.html", title = 'Vegas Data Display')
 
 server_push_port = '5556'
 server_pub_port  = '5558'
@@ -43,8 +17,7 @@ server_pub_port  = '5558'
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
         self.startTimes, self.endTimes = [], []
-        Process(target=server_push, args=(server_push_port,)).start()
-        Process(target=server_pub, args=(server_pub_port,)).start()
+        Process(target=server_pub, args=(server_pub_port,self,)).start()
         Process(target=client, args=(server_push_port,server_pub_port,self,)).start()
         print "WebSocket opened"
 
@@ -56,10 +29,17 @@ class ZMQWebSocket(websocket.WebSocketHandler):
     def on_close(self):
         print "WebSocket closed"
 
+settings = {
+    "static_path": os.path.join(os.path.dirname(__file__), "static"),
+    "cookie_secret": "__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
+    "login_url": "/login",
+    "xsrf_cookies": True,
+}
+
 app = tornado.web.Application([
     (r"/", MainHandler),
     (r"/websocket", ZMQWebSocket),
-        ])
+], **settings)
 
 if __name__ == "__main__":
     app.listen(8888)

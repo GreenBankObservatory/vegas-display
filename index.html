@@ -1,0 +1,86 @@
+<html>
+  <head>
+		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+		<!--[if IE]><script type="text/javascript" src="static/jssurfaceplot/javascript/excanvas.js"></script><![endif]-->
+		<script type="text/javascript" src='static/jssurfaceplot/javascript/SurfacePlot.js'></script>
+		<script type="text/javascript" src='static/jssurfaceplot/javascript/ColourGradient.js'></script>
+		<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <title>{{title}}</title>
+    <script type="text/javascript">
+      function setUp()
+        {
+          //var numRows = 45.0;
+          var numRows = spectralData.length;
+          //var numCols = 45;
+          var numCols = spectralData[0].length;
+          var tooltipStrings = new Array();
+          var data = new google.visualization.DataTable();
+
+          for (var i = 0; i < numCols; i++) {
+            data.addColumn('number', 'col'+i);
+          }
+
+          data.addRows(numRows);
+          var idx = 0;
+          for (var i = 0; i < numRows; i++) {
+            for (var j = 0; j < numCols; j++) {
+              data.setValue(i, j, spectralData[i][j]);
+              tooltipStrings[idx] = "x:" + i + ", y:" + j + " = " + spectralData[i][j];
+              idx++;
+            }
+          }
+
+          var surfacePlot = new greg.ross.visualisation.SurfacePlot(document.getElementById("surfacePlotDiv"));
+
+          // Don't fill polygons in IE. It's too slow.
+          var fillPly = true;
+
+				// Define a colour gradient.
+				var colour1 = {red:0, green:0, blue:255};
+				var colour2 = {red:0, green:255, blue:255};
+				var colour3 = {red:0, green:255, blue:0};
+				var colour4 = {red:255, green:255, blue:0};
+				var colour5 = {red:255, green:0, blue:0};
+				var colours = [colour1, colour2, colour3, colour4, colour5];
+				
+				// Axis labels.
+				var xAxisHeader	= "X";
+				var yAxisHeader	= "Y";
+				var zAxisHeader	= "Z";
+				
+				var options = {xPos: 0, yPos: 0, zPos: 5,width: 500, height: 500, colourGradient: colours, fillPolygons: fillPly,
+					tooltips: tooltipStrings, xTitle: xAxisHeader, yTitle: yAxisHeader, zTitle: zAxisHeader};
+				
+				surfacePlot.draw(data, options);
+			}
+
+      var spectralData = new Array();
+      function plotData() {
+        google.load("visualization", "1", {"callback": setUp});
+      };
+
+      var ws = new WebSocket("ws://192.168.28.128:8888/websocket");
+      ws.onopen = function() {
+        //ws.send("Hello, world");
+      };
+      ws.onmessage = function (evt) {
+        if (evt.data == 'close'){
+          ws.close();
+          plotData();
+        } else {
+          var data = eval(evt.data);
+          spectralData.push(data[1]);
+          console.log(data[0], data[1].length);
+          ws.send(data[0]);
+        }
+      };
+      
+    </script>
+  </head>
+  <body>
+		<div id='surfacePlotDiv'>
+			<!-- SurfacePlot goes here... -->
+                </div>
+  </body>
+</html>
+
