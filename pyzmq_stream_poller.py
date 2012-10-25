@@ -20,7 +20,7 @@ def server_pub(port, ws):
     for reqnum in range(10):
         # Wait for next request from client
         #numchan = 32768  # max number of channels with VEGAS
-        numchan = 1000
+        numchan = 200
         data    = [reqnum, [random.randrange(5, 10) for i in xrange(numchan)]]
         print 'zmq sending:', data[0]
         times.append((reqnum, time.time()))
