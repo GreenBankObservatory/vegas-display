@@ -17,15 +17,15 @@ def server_pub(port, ws):
     print "Running server on port: ", port
     times = []
     # serves only 5 request and dies
-    for reqnum in range(10):
+    for reqnum in range(100):
         # Wait for next request from client
         #numchan = 32768  # max number of channels with VEGAS
-        numchan = 200
+        numchan = 1000
         data    = [reqnum, [random.randrange(5, 10) for i in xrange(numchan)]]
         print 'zmq sending:', data[0]
         times.append((reqnum, time.time()))
         socket.send_pyobj(data)
-        time.sleep(1)
+        time.sleep(0.25)
     print 'start times:', times
     ws.write_message('close');
     ioloop.IOLoop.instance().stop()

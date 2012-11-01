@@ -3,13 +3,13 @@ Ext.application({
     appFolder: 'static/js/vegasdd',
     name: 'vegasdd',
     controllers: [
-	'Display',
+	'CanvasDisplay',
     ],
     
     launch: function() {
 	var me = this;
-	var display = Ext.create('vegasdd.view.data.Display');
-	this.getController('Display').setDisplay(display);
+	var display = Ext.create('vegasdd.view.data.CanvasDisplay');
+	this.getController('CanvasDisplay').setDisplay(display);
         Ext.create('Ext.container.Viewport', {
             layout: 'fit',
             items: [
@@ -25,7 +25,7 @@ Ext.application({
                 ws.close();
             } else {
                 var data = eval(evt.data);
-                me.getController('Display').updateDisplay(data[1]);
+                me.getController('CanvasDisplay').updateDisplay(data[1]);
                 console.log(data[0], data[1].length);
                 ws.send(data[0]);
             }
