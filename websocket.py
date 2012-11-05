@@ -15,24 +15,23 @@ server_pub_port  = '5558'
         
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
-        self.startTimes, self.endTimes = [], []
-        Process(target=server_pub, args=(server_pub_port,self,)).start()
-        Process(target=client, args=(server_pub_port,self,)).start()
+        self.times = {}
+        Process(target=server_pub, args=(server_pub_port,)).start()
+        client(server_pub_port, self)
         print "WebSocket opened"
 
     def on_message(self, message):
-        self.endTimes.append((message, time.time()))
-        #print 'end times:  ', self.endTimes
+        self.times[int(message)].append(time.time())
 
     def write_message(self, msg):
         if msg != 'close':
-            self.startTimes.append((msg[0], time.time()))
+            self.times[msg[0]] = [time.time()]
         super(ZMQWebSocket, self).write_message(unicode(msg))
         
     def on_close(self):
-        print self.startTimes
-        print self.endTimes
         print "WebSocket closed"
+        for k, (s, e) in self.times.iteritems():
+            print k, e - s
 
 settings = {
     "static_path": os.path.join(os.path.dirname(__file__), "static"),
