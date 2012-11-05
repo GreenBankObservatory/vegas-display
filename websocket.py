@@ -11,22 +11,27 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html", title = 'Vegas Data Display')
 
-server_push_port = '5556'
 server_pub_port  = '5558'
         
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
         self.startTimes, self.endTimes = [], []
         Process(target=server_pub, args=(server_pub_port,self,)).start()
-        Process(target=client, args=(server_push_port,server_pub_port,self,)).start()
+        Process(target=client, args=(server_pub_port,self,)).start()
         print "WebSocket opened"
 
     def on_message(self, message):
         self.endTimes.append((message, time.time()))
-        print 'end times:  ', self.endTimes
-        #self.write_message(u"You said: " + message)
+        #print 'end times:  ', self.endTimes
 
+    def write_message(self, msg):
+        if msg != 'close':
+            self.startTimes.append((msg[0], time.time()))
+        super(ZMQWebSocket, self).write_message(unicode(msg))
+        
     def on_close(self):
+        print self.startTimes
+        print self.endTimes
         print "WebSocket closed"
 
 settings = {

@@ -13,9 +13,11 @@ Ext.define('vegasdd.controller.CanvasDisplay', {
     },
 
     addData: function(data){
-	var maxSize = 20;
+	var maxSize = 1 / this.display.heightScale;
 	if (this.spectralData.length >= maxSize){
 	    this.spectralData = new Array();
+            this.display.clearCanvas();
+            this.display.drawAxis();
 	}
 	this.spectralData.unshift(data);
     },

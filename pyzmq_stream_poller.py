@@ -17,20 +17,20 @@ def server_pub(port, ws):
     print "Running server on port: ", port
     times = []
     # serves only 5 request and dies
-    for reqnum in range(100):
+    for reqnum in range(10):
         # Wait for next request from client
         #numchan = 32768  # max number of channels with VEGAS
         numchan = 1000
         data    = [reqnum, [random.randrange(5, 10) for i in xrange(numchan)]]
-        print 'zmq sending:', data[0]
-        times.append((reqnum, time.time()))
+        #print 'zmq sending:', data[0]
+        #times.append((reqnum, time.time()))
         socket.send_pyobj(data)
-        time.sleep(0.25)
-    print 'start times:', times
+        time.sleep(2)
+    #print 'start times:', times
     ws.write_message('close');
     ioloop.IOLoop.instance().stop()
         
-def client(port_push, port_sub, ws):    
+def client(port_sub, ws):    
     context     = zmq.Context()
         
     socket_sub = context.socket(zmq.SUB)
@@ -39,8 +39,8 @@ def client(port_push, port_sub, ws):
     
     def handler(msg):
         msg = pickle.loads(msg[0])
-        print 'websocket sending:', msg[0]
-        ws.write_message(unicode(msg))
+        #print 'websocket sending:', msg[0]
+        ws.write_message(msg)
 
     stream_sub = zmqstream.ZMQStream(socket_sub)
     stream_sub.on_recv(handler)

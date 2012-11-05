@@ -11,6 +11,7 @@ Ext.define('vegasdd.view.data.CanvasDisplay', {
 	this.height = 600;
 	this.vertMargin  = 50;
 	this.hortMargin = 50;
+        this.heightScale = .01;
 	var cwidth      = this.width + this.hortMargin;
 	var cheight     = this.height + this.vertMargin;
         this.items = [{
@@ -22,6 +23,12 @@ Ext.define('vegasdd.view.data.CanvasDisplay', {
 	this.callParent(arguments);
     },
 
+    clearCanvas: function(){
+        var c = document.getElementById("mycanvas");
+        var ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, this.width + this.hortMargin * 2, this.height + this.vertMargin * 2);
+    },        
+            
     drawDisplay: function(spectralData){
         var c = document.getElementById("mycanvas");
         var ctx = c.getContext("2d");
@@ -29,7 +36,7 @@ Ext.define('vegasdd.view.data.CanvasDisplay', {
         var me = this;
         var numChannels = spectralData[0].length;
 	var pointWidth  = (this.width - this.vertMargin) / numChannels;
-	var pointHeight = 0.01 * this.height;
+	var pointHeight = this.heightScale * (this.height - this.hortMargin);
 	var xStart      = this.hortMargin;
 	var yStart      = this.vertMargin;
 	var value;
@@ -57,6 +64,7 @@ Ext.define('vegasdd.view.data.CanvasDisplay', {
 	ctx.stroke();
 
 	ctx.font = "20px Arial";
+        ctx.fillStyle = '#000000';
 	ctx.fillText("channels", this.width / 2.0, this.vertMargin - 10)
     },
     

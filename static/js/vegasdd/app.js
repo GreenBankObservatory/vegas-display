@@ -16,12 +16,13 @@ Ext.application({
 		display,
             ]
         });
-        var ws = new WebSocket("ws://192.168.28.128:8888/websocket");
+        var ws = new WebSocket("ws://colossus.gb.nrao.edu:8888/websocket");
         ws.onopen = function() {
           //ws.send("Hello, world");
         };
         ws.onmessage = function (evt) {
             if (evt.data == 'close'){
+                console.log('Closing WebSocket.');
                 ws.close();
             } else {
                 var data = eval(evt.data);
