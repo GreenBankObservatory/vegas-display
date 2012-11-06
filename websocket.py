@@ -16,6 +16,7 @@ server_pub_port  = '5558'
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
         self.times = {}
+        self.msgSize = None
         Process(target=server_pub, args=(server_pub_port,)).start()
         client(server_pub_port, self)
         print "WebSocket opened"
@@ -24,14 +25,16 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         self.times[int(message)].append(time.time())
 
     def write_message(self, msg):
+        data = unicode(msg)
+        self.msgSize = self.msgSize or len(data) * 2
         if msg != 'close':
             self.times[msg[0]] = [time.time()]
-        super(ZMQWebSocket, self).write_message(unicode(msg))
+        super(ZMQWebSocket, self).write_message(data)
         
     def on_close(self):
         print "WebSocket closed"
-        for k, (s, e) in self.times.iteritems():
-            print k, e - s
+        print "Message size (bytes)", self.msgSize
+        print [e - s for _ , (s, e) in self.times.iteritems()]
 
 settings = {
     "static_path": os.path.join(os.path.dirname(__file__), "static"),

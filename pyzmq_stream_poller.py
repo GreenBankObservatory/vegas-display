@@ -14,13 +14,13 @@ def server_pub(port):
     publisher_id = random.randrange(0,9999)
     print "Running server on port: ", port
     # serves only 5 request and dies
-    for reqnum in range(10):
+    for reqnum in range(300):
         # Wait for next request from client
         #numchan = 32768  # max number of channels with VEGAS
-        numchan = 1000
+        numchan = (1024, 2048)[1]
         data    = [reqnum, [random.randrange(5, 10) for i in xrange(numchan)]]
         socket.send_pyobj(data)
-        time.sleep(.5)
+        time.sleep(1)
     socket.send_pyobj('close')
     #tornado.ioloop.IOLoop.instance().stop()
         

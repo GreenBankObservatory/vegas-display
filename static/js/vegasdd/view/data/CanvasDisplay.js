@@ -16,7 +16,7 @@ Ext.define('vegasdd.view.data.CanvasDisplay', {
 	var cheight     = this.height + this.vertMargin;
         this.items = [{
 	        xtype: "panel",
-                html: "<canvas id='mycanvas' width='" + cwidth + "' height='" + cheight + "' style='border:1px solid #000000;'></canvas>"
+                html: "<canvas id='bg' width='" + cwidth + "' height='" + cheight + "' style='z-index: 10; border:1px solid #000000;'></canvas><canvas id='fg' width='" + this.width + "'height='" + this.height + "' style='z-index: 11'></canvas>"
 	}];
 
 	this.addListener('render', this.drawAxis);
@@ -24,13 +24,13 @@ Ext.define('vegasdd.view.data.CanvasDisplay', {
     },
 
     clearCanvas: function(){
-        var c = document.getElementById("mycanvas");
+        var c = document.getElementById("fg");
         var ctx = c.getContext("2d");
-        ctx.clearRect(0, 0, this.width + this.hortMargin * 2, this.height + this.vertMargin * 2);
+        ctx.clearRect(0, 0, this.width, this.height);
     },        
             
     drawDisplay: function(spectralData){
-        var c = document.getElementById("mycanvas");
+        var c = document.getElementById("fg");
         var ctx = c.getContext("2d");
 
         var me = this;
@@ -50,11 +50,10 @@ Ext.define('vegasdd.view.data.CanvasDisplay', {
 			     pointHeight)
 	    }
 	}
-
     },
 
     drawAxis: function() {
-        var c = document.getElementById("mycanvas");
+        var c = document.getElementById("bg");
         var ctx = c.getContext("2d");
 	var l = this.hortMargin; //Short hand
         ctx.moveTo(l, this.vertMargin);
