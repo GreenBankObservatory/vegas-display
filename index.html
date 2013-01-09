@@ -3,37 +3,66 @@
     <meta charset="utf-8">
     <title>{{title}}</title>
     <link rel="stylesheet" href="/static/assets/app/resources/app.css">
-    <script>
-      /*
-      var dojoConfig = {
-          baseUrl: "/static/js/",
-          tlmSiblingOfDojo: false,
-          packages: [
-              { name: "dojo", location: "lib/dojo" },
-              { name: "dijit", location: "lib/dijit" },
-              { name: "dojox", location: "lib/dojox" },
-              { name: "vegasdisplay", location: "vegasdisplay", main: "app" }
-          ]
-      };
-      */
-    </script>
+    <style>
+      .pull-right {
+        float: right;
+      }
+      .pull-left {
+        float: left;
+      }
+      #timeseries {
+        position: absolute;
+        left: 700px;
+        top: 200px;
+        width: 550px;
+        height: 200px;
+        margin: 5px auto 0px auto;
+          /* Rotate div */
+          transform:rotate(90deg);
+          -ms-transform:rotate(90deg); /* Internet Explorer */
+          -moz-transform:rotate(90deg); /* Firefox */
+          -webkit-transform:rotate(90deg); /* Safari and Chrome */
+          -o-transform:rotate(90deg); /* Opera */
+      }
+    </style>
   </head>
   <body class="claro">
-    <div id='display'>
-      <canvas id="bg"
+    <div id='display' class='pull-left'>
+      <canvas id="axis"
               width="850"
               height="650"
-              style="position: absolute; left: 0px; top:0px; z-index: 0; border:1px solid #000000;">
+              style="position: absolute; left: 0px; top:0px; z-index: 10; border:1px solid #000000;">
       </canvas>
-      <canvas id="fg"
+      <canvas id="waterfall1"
               width="800"
               height="600"
               style="position: absolute; left: 0px; top:-550px; z-index: 1">
       </canvas>
+      <canvas id="waterfall2"
+              width="800"
+              height="600"
+              style="position: absolute; left: 0px; top:0px; z-index: 1">
+      </canvas>
+      <div id="timeseries"></div>
+      <div id="spectra" style="position: absolute; left: 40px; top:
+      660px; width: 750px; height: 200px; margin: 5px auto 0px auto;"></div>
     </div>
-    <div id='controls'>
+
+    <div id='controls' class='pull-right'>
+      <h1>Controls</h1>
     </div>
-    <script data-dojo-config="async: 1, tlmSiblingOfDojo: 0, isDebug: 1" src="/static/assets/dojo/dojo.js"></script>
+
+    <script>
+      dojoConfig = {
+        async: 1,
+        tlmSiblingOfDojo: 0,
+        isDebug: 1,
+        cacheBust: new Date(),
+        //gfxRenderer: "canvas, svg, silverligh, vml",
+      }
+    </script>
+    <script 
+            src="/static/assets/dojo/dojo.js"></script>
     <script src="/static/assets/app/run.js"></script>
   </body>
 </html>
