@@ -20,7 +20,7 @@ def server_pub(port):
         numchan = (1024, 2048)[1]
         data    = [reqnum, [random.randrange(5, 10) for i in xrange(numchan)]]
         socket.send_pyobj(data)
-        time.sleep(1)
+        time.sleep(.5)
     socket.send_pyobj('close')
     #tornado.ioloop.IOLoop.instance().stop()
         
