@@ -19,6 +19,7 @@ def server_pub(port):
         #numchan = 32768  # max number of channels with VEGAS
         numchan = (1024, 2048)[1]
         data    = [reqnum, [random.randrange(5, 10) for i in xrange(numchan)]]
+        # the following will eventually be replaced with a protobuf
         socket.send_pyobj(data)
         time.sleep(.5)
     socket.send_pyobj('close')
@@ -32,6 +33,8 @@ def client(port_sub, ws):
     socket_sub.setsockopt(zmq.SUBSCRIBE, '')
     
     def handler(msg):
+        # the following will eventually read a protobuf instead of a zmq
+        # python object
         msg = pickle.loads(msg[0])
         ws.write_message(msg)
 

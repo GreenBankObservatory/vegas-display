@@ -5,23 +5,33 @@ from multiprocessing import Process
 import time
 import os
 
-from pyzmq_stream_poller import *
+from pyzmq_stream_poller import server_pub, client
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html", title = 'Vegas Data Display')
 
-server_pub_port  = '5558'
+server_pub_port  = '5559'
         
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
+        """
+        This method is called when the JS creates a WebSocket object.
+        """
         self.times = {}
         self.msgSize = None
+        #  Launch our mock up zmq publisher in a separate process.
         Process(target=server_pub, args=(server_pub_port,)).start()
+        #  Also, call client to subscribe to the zmq socket. NOTICE: we
+        #  additionally pass in a reference to self (ZMQWebSocket instance).
         client(server_pub_port, self)
         print "WebSocket opened"
 
     def on_message(self, message):
+        """
+        This method is called when the server responds.  See send call in the
+        onmessage function in Display.js in the client code.
+        """
         self.times[int(message)].append(time.time())
 
     def write_message(self, msg):
@@ -50,5 +60,6 @@ app = tornado.web.Application([
 ], **settings)
 
 if __name__ == "__main__":
-    app.listen(8888)
+    app.listen(8889)
     tornado.ioloop.IOLoop.instance().start()
+
