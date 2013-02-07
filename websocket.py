@@ -20,8 +20,10 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         """
         self.times = {}
         self.msgSize = None
+
         #  Launch our mock up zmq publisher in a separate process.
         Process(target=server_pub, args=(server_pub_port,)).start()
+
         #  Also, call client to subscribe to the zmq socket. NOTICE: we
         #  additionally pass in a reference to self (ZMQWebSocket instance).
         client(server_pub_port, self)

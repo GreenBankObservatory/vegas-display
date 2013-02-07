@@ -28,6 +28,12 @@
   </head>
   <body class="claro">
     <div id='display' class='pull-left'>
+
+      <!-- setting a high z-index on the "axis" canvas puts it at the top
+           canvas element stack.  that means it sits above waterfall1
+           and waterfall2 and will be the one to handle mouse events
+           in areas where they overlap.
+      -->
       <canvas id="axis"
               width="850"
               height="650"
