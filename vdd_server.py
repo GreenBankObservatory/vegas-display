@@ -1,12 +1,12 @@
 import zmq
-import pickle
-
-from zmq.eventloop import  zmqstream
+from zmq.eventloop import zmqstream
 
 from tornado import websocket
 import tornado.web
 import tornado.ioloop
+
 from multiprocessing import Process
+import pickle
 import time
 import os
 
