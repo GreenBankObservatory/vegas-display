@@ -10,7 +10,7 @@ import pickle
 import time
 import os
 
-from publisher import mock_zmq_publisher
+from mock_zmq_publisher import mock_zmq_publisher
 
 PUBLISHER_PORT  = '5559'
 
