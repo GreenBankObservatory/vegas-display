@@ -36,6 +36,7 @@ def zmqclient(port_sub, ws):
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html", title = 'Vegas Data Display')
+        time.sleep(2)
       
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
@@ -59,6 +60,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         onmessage function in Display.js in the client code.
         """
         self.times[int(message)].append(time.time())
+        print('got message',int(message))
 
     def write_message(self, msg):
         """ 
@@ -78,6 +80,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             self.times[msg[0]] = [time.time()]
                
         # python 3 syntax would be super().write_message(data)
+        print('writing data')
         super(ZMQWebSocket, self).write_message(data)
         
     def on_close(self):

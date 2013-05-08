@@ -5,15 +5,13 @@ import zmq
 from zmq.eventloop import ioloop
 ioloop.install()
 
-NREQUESTS = 300
-NCHANS = 2048 # 32768 is max number of channels with VEGAS
+NREQUESTS = 150
+NCHANS = 1024 # 32768 is max number of channels with VEGAS
 
 def mock_zmq_publisher(port):
     context = zmq.Context()
     socket  = context.socket(zmq.PUB)
     socket.bind("tcp://*:%s" % port)
-    
-    #publisher_id = random.randrange(0,9999)
     
     print "Running server on port: ", port
     
@@ -21,12 +19,11 @@ def mock_zmq_publisher(port):
     for reqnum in range(NREQUESTS):
 
         # Wait for next request from client
-        data = [reqnum, [random.randrange(5, 10) for i in xrange(NCHANS)]]
+        data = [reqnum, [random.randrange(5,10) for i in xrange(NCHANS)]]
         
         # the following will eventually be replaced with a protobuf
         socket.send_pyobj(data)
+        print('sent data',reqnum)
         time.sleep(.5)
         
     socket.send_pyobj('close')
-    
-    #tornado.ioloop.IOLoop.instance().stop()

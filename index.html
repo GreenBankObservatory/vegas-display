@@ -4,30 +4,25 @@
     <title>{{title}}</title>
     <link rel="stylesheet" href="/static/assets/app/resources/app.css">
     <style>
-      .pull-right {
-        float: right;
-      }
-      .pull-left {
-        float: left;
-      }
       #timeseries {
         position: absolute;
-        left: 700px;
-        top: 200px;
+        left: 650px;
+        top: 220px;
         width: 550px;
         height: 200px;
-        margin: 5px auto 0px auto;
+        /*margin: 5px auto 0px auto;*/
           /* Rotate div */
           transform:rotate(90deg);
           -ms-transform:rotate(90deg); /* Internet Explorer */
           -moz-transform:rotate(90deg); /* Firefox */
           -webkit-transform:rotate(90deg); /* Safari and Chrome */
           -o-transform:rotate(90deg); /* Opera */
+         border:0px solid purple; 
       }
     </style>
   </head>
   <body class="claro">
-    <div id='display' class='pull-left'>
+    <div id='display'>
 
       <!-- setting a high z-index on the "axis" canvas puts it at the top
            canvas element stack.  that means it sits above waterfall1
@@ -35,26 +30,26 @@
            in areas where they overlap.
       -->
       <canvas id="axis"
-              width="850"
-              height="650"
-              style="position: absolute; left: 0px; top:0px; z-index: 10; border:1px solid #000000;">
+              width="750px"
+              height="550px"
+              style="position: absolute; left: 50px; top:50px; z-index: 1; border:1px solid #000000;">
       </canvas>
       <canvas id="waterfall1"
-              width="800"
-              height="600"
-              style="position: absolute; left: 0px; top:-550px; z-index: 1">
+              width="750px"
+              height="550px"
+              style="position: absolute; left: 50px; top:-500px; border:0px solid blue;">
       </canvas>
       <canvas id="waterfall2"
-              width="800"
-              height="600"
-              style="position: absolute; left: 0px; top:0px; z-index: 1">
+              width="750px"
+              height="550px"
+              style="position: absolute; left: 50px; top:50px; border:0px solid pink;">
       </canvas>
       <div id="timeseries"></div>
-      <div id="spectra" style="position: absolute; left: 40px; top:
-      660px; width: 750px; height: 200px; margin: 5px auto 0px auto;"></div>
+      <div id="spectra" style="position: absolute; left: 50px; top:
+      620px; width: 750px; height: 200px;border:0px solid green;"></div> <!--  margin: 5px auto 0px auto; -->
     </div>
 
-    <div id='controls' class='pull-right'>
+    <div id='controls' style="position: absolute; left: 1050px; top:20px;">
       <h1>Controls</h1>
     </div>
 
