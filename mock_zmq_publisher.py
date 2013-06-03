@@ -5,7 +5,7 @@ import zmq
 from zmq.eventloop import ioloop
 ioloop.install()
 
-NREQUESTS = 150
+NREQUESTS = 10
 NCHANS = 1024 # 32768 is max number of channels with VEGAS
 
 def mock_zmq_publisher(port):
@@ -19,7 +19,7 @@ def mock_zmq_publisher(port):
     for reqnum in range(NREQUESTS):
 
         # Wait for next request from client
-        data = [reqnum, [random.randrange(0,98765) for i in xrange(NCHANS)]]
+        data = [random.randrange(0,98765) for i in xrange(NCHANS)]
         
         # the following will eventually be replaced with a protobuf
         socket.send_pyobj(data)

@@ -1,6 +1,9 @@
 import zmq
 from zmq.eventloop import zmqstream
+
 import PBVegasData_pb2
+from DataStreamUtils import get_service_endpoints, get_directory_endpoints
+
 import numpy as np
 
 from tornado import websocket
@@ -11,11 +14,14 @@ from multiprocessing import Process
 import pickle
 import time
 import os
+import sys
+import subprocess
 
-SERVER_AVAILABLE = False 
+SERVER_AVAILABLE = True 
 
 if SERVER_AVAILABLE:
     PUBLISHER_PORT = True
+    bank = 'BankAMgr'
 else:
     from mock_zmq_publisher import mock_zmq_publisher
     PUBLISHER_PORT  = '5559'
@@ -25,8 +31,19 @@ def zmqclient(port_sub, ws):
     ctx = zmq.Context()
     
     if SERVER_AVAILABLE:
+        print 'getting a VEGAS manager url for bank ' + bank
+        context = zmq.Context(1)
+        req_url = get_directory_endpoints('request')
+        url = get_service_endpoints(context, req_url, 'VEGAS', bank, 1)
+        if 'NOT FOUND!' == url:
+            print 'ERROR: VEGAS manager for ' + bank + ' is not available. Services available...'
+            subprocess.call('list_all_services.py')
+            print 'Stopping'
+            sys.exit()
+        else:
+            print url
         snapshot_socket = ctx.socket(zmq.REQ)
-        snapshot_socket.connect("tcp://north.gb.nrao.edu:32768")
+        snapshot_socket.connect(url)
     else:
         socket_sub = ctx.socket(zmq.SUB)
         socket_sub.connect ("tcp://localhost:%s" % port_sub)
@@ -47,11 +64,11 @@ def zmqclient(port_sub, ws):
             # the following will eventually read a protobuf instead of a zmq
             # python object
             msg = pickle.loads(msg[0])
-            ws.write_message(msg[1])
+            ws.write_message(msg)
 
     if SERVER_AVAILABLE:
         for x in range(10000):
-            snapshot_socket.send('VEGAS.BankAMgr:Data')
+            snapshot_socket.send('VEGAS.'+bank+':Data')
             print 'key from VEGAS is:' + snapshot_socket.recv()  # first recv() returns the key back
             handler(snapshot_socket.recv())  # next recv() gets the protobuf
             time.sleep(1)
@@ -64,7 +81,6 @@ def zmqclient(port_sub, ws):
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.render("index.html", title = 'Vegas Data Display')
-        time.sleep(2)
       
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
@@ -111,45 +127,47 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 #            else:
 #                self.specAve = np.array(msg)
 #                self.nSpecInAve = 1
-#
-#            constrained_data = np.ma.array(msg, mask=msg>np.std(msg))[:750]
 
-#            print(np.max(constrained_data),np.min(constrained_data))
-        npmsg = np.array(msg)
-        rebinned_data = [np.mean(x) for x in npmsg.reshape((nchans,len(npmsg)/nchans))]
-        data = unicode([rebinned_data, np.floor(min(rebinned_data)), np.ceil(max(rebinned_data))])
-#        print('length of data',len(data))
+        if not msg:
+            print 'There is no message to write.  Quitting.'
+            sys.exit()
+        elif 'close' != msg:
+            npmsg = np.array(msg)
+            rebinned_data = [np.mean(x) for x in npmsg.reshape((nchans,len(npmsg)/nchans))]
+            data = unicode([rebinned_data, np.floor(min(rebinned_data)), np.ceil(max(rebinned_data))])
+            # self.times[msg[0]] = [time.time()]
+        else:
+            print msg
+            data = msg
+
         # the size of an 8bit Unicode string in bytes is length *2
         # the following is an idiom for
         # if x then do y, else no change (set x=x)
         self.msgSize = self.msgSize or len(data) * 2
-#        if msg != 'close':
-#            self.times[msg[0]] = [time.time()]
                
         # the following line sends the data to the JS client
         # python 3 syntax would be super().write_message(data)
-      #  raw_input('press a key to send data to browser')
         super(ZMQWebSocket, self).write_message(data)
 
     def on_close(self):
         print "WebSocket closed"
-        print "Message size (bytes)", self.msgSize
-        print [e - s for _ , (s, e) in self.times.iteritems()]
+        #print "Message size (bytes)", self.msgSize
+        #print [e - s for _ , (s, e) in self.times.iteritems()]
 
 if __name__ == "__main__":
 
     settings = {
         "static_path": os.path.join(os.path.dirname(__file__), "static"),
-        "cookie_secret": "__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
-        "login_url": "/login",
-        "xsrf_cookies": True,
-        "debug" : True
     }
 
     application = tornado.web.Application([
         (r"/", MainHandler),
-        (r"/websocket", ZMQWebSocket),
+        (r"/websocket", ZMQWebSocket)
     ], **settings)
     
-    application.listen(8889)
-    tornado.ioloop.IOLoop.instance().start()
+    application.listen(8889,'0.0.0.0')
+    try:
+        tornado.ioloop.IOLoop.instance().start()
+    except(KeyboardInterrupt):
+        sys.exit()
+
