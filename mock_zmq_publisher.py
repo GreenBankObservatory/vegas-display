@@ -19,11 +19,11 @@ def mock_zmq_publisher(port):
     for reqnum in range(NREQUESTS):
 
         # Wait for next request from client
-        data = [reqnum, [random.randrange(5,10) for i in xrange(NCHANS)]]
+        data = [reqnum, [random.randrange(0,98765) for i in xrange(NCHANS)]]
         
         # the following will eventually be replaced with a protobuf
         socket.send_pyobj(data)
         print('sent data',reqnum)
-        time.sleep(.5)
+        time.sleep(1)
         
     socket.send_pyobj('close')
