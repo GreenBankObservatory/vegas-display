@@ -15,13 +15,17 @@ import pickle
 import time
 import os
 import sys
+import signal # for timeout
 import subprocess
 
 SERVER_AVAILABLE = True 
 
+def timeout_handler(signum, frame):
+    raise 
+
 if SERVER_AVAILABLE:
     PUBLISHER_PORT = True
-    bank = 'BankAMgr'
+    banks = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
 else:
     from mock_zmq_publisher import mock_zmq_publisher
     PUBLISHER_PORT  = '5559'
@@ -31,19 +35,28 @@ def zmqclient(port_sub, ws):
     ctx = zmq.Context()
     
     if SERVER_AVAILABLE:
-        print 'getting a VEGAS manager url for bank ' + bank
+
         context = zmq.Context(1)
         req_url = get_directory_endpoints('request')
-        url = get_service_endpoints(context, req_url, 'VEGAS', bank, 1)
-        if 'NOT FOUND!' == url:
-            print 'ERROR: VEGAS manager for ' + bank + ' is not available. Services available...'
+
+        urls = {}
+        for bank in banks:
+            url = get_service_endpoints(context, req_url, 'VEGAS', 'Bank'+bank+'Mgr', 1)
+            if 'NOT FOUND!' == url:
+                print 'Bank ' + bank + ' is not available.'
+            else:
+                print 'Bank ' + bank + ' is AVAILABLE.'
+                urls[bank] = url;
+
+        if not urls:
+            print 'ERROR: could not find available VEGAS banks'
             subprocess.call('list_all_services.py')
-            print 'Stopping'
             sys.exit()
-        else:
-            print url
+
         snapshot_socket = ctx.socket(zmq.REQ)
-        snapshot_socket.connect(url)
+        firstavailable = urls.keys()[0]
+        print 'Connecting to VEGAS bank', firstavailable
+        snapshot_socket.connect(urls[firstavailable])
     else:
         socket_sub = ctx.socket(zmq.SUB)
         socket_sub.connect ("tcp://localhost:%s" % port_sub)
@@ -69,8 +82,17 @@ def zmqclient(port_sub, ws):
     if SERVER_AVAILABLE:
         for x in range(10000):
             snapshot_socket.send('VEGAS.'+bank+':Data')
-            print 'key from VEGAS is:' + snapshot_socket.recv()  # first recv() returns the key back
-            handler(snapshot_socket.recv())  # next recv() gets the protobuf
+
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(3)
+            try:
+                print 'key from VEGAS is:' + snapshot_socket.recv()  # first recv() returns the key back
+                handler(snapshot_socket.recv())  # next recv() gets the protobuf
+            except:
+                print 'ERROR: did not get a response from bank', bank, 'manager.'
+                sys.exit()
+            signal.alarm(0)
+
             time.sleep(1)
     else:
         stream_sub = zmqstream.ZMQStream(socket_sub)
@@ -106,8 +128,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         This method is called when the server responds.  See send call in the
         onmessage function in Display.js in the client code.
         """
-        self.times[int(message)].append(time.time())
-        print('got message',int(message))
+        # self.times[int(message)].append(time.time())
+        print('got message', message)
 
     def write_message(self, msg):
         """ 
