@@ -1,9 +1,6 @@
 import zmq
 from zmq.eventloop import zmqstream
 
-import PBVegasData_pb2
-from DataStreamUtils import get_service_endpoints, get_directory_endpoints
-
 import numpy as np
 
 from tornado import websocket
@@ -24,7 +21,16 @@ NCHANS = 512  # number of channels for client to display
 def timeout_handler(signum, frame):
     raise 
 
-banks = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+from mock_zmq_publisher import mock_zmq_publisher
+PUBLISHER_PORT  = {'A': '5551',
+                   'B': '5552',
+                   'C': '5553',
+                   'D': '5554',
+                   'E': '5555',
+                   'F': '5556',
+                   'G': '5557',
+                   'G': '5558'}
+ACTIVE_MOCK_BANKS = ['A', 'B']
 
 def connect_to_bank(bank, bank_url, publisher_socket, client_socket):
     """Connect (i.e. subscribe) to a data publisher.
@@ -40,32 +46,15 @@ def connect_to_bank(bank, bank_url, publisher_socket, client_socket):
     publisher_socket.connect(bank_url)
 
     def handler(msg):
-        print('received data from VEGAS manager')
-        # the following will eventually read a protobuf instead of a zmq
-        # python object
-        p = PBVegasData_pb2.pbVegasData()   # use this class to parse the protobuf
-        p.ParseFromString(msg)
+        # The mock server uses a pickled python object, while the vegas
+        #  server uses a protobuf
+        msg = pickle.loads(msg)
+        client_socket.write_message(['data',msg])
 
-        # the following message goes to the JS client
-        print 'length of VEGAS data:' + str(len(list(p.data)))
-        client_socket.write_message(['data',p.data])
-
-    for x in range(10000):
-        publisher_socket.send('VEGAS.' + bank + ':Data')
-
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(3)
-        try:
-            # first recv() returns the key back
-            print 'key from VEGAS is:' + publisher_socket.recv()
-            handler(publisher_socket.recv())  # next recv() gets the protobuf
-        except:
-            print 'ERROR: did not get a response from bank', firstavailable, 'manager.'
-            sys.exit()
-        signal.alarm(0)
-
-        time.sleep(UPDATE_INTERVAL)
-
+    publisher_socket.send('')
+    message = publisher_socket.recv()
+    handler(message)
+    print "Got data from bank %s, port %s" % (bank, PUBLISHER_PORT[bank])
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
@@ -82,47 +71,27 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         self.specAve = None # running average of spectra
         self.publisher_socket = None
 
-        context = zmq.Context(1)
-        req_url = get_directory_endpoints('request')
-
-        self.urls = {}
-        for bank in banks:
-            url = get_service_endpoints(context, req_url, 'VEGAS', 'Bank'+bank+'Mgr', 1)
-            if 'NOT FOUND!' == url:
-                print 'Bank ' + bank + ' is not available.'
-            else:
-                print 'Bank ' + bank + ' is AVAILABLE.'
-                urls[bank] = url;
-
-        if not self.urls:
-            print 'ERROR: could not find available VEGAS banks'
-            subprocess.call('list_all_services.py')
-            sys.exit()
-        else:
-            # tell the client what banks are available to enable radio buttons
-            ws.write_message(['bank_config', self.urls.keys()])
+        #  Launch our mock up zmq publishers in separate processes.
+        for bb in ACTIVE_MOCK_BANKS:
+            print 'Bank',bb,'Port',PUBLISHER_PORT[bb]
+            Process(target=mock_zmq_publisher, args=(PUBLISHER_PORT[bb],)).start()
 
         ctx = zmq.Context()
         self.publisher_socket = ctx.socket(zmq.REQ)
 
-        bank = self.urls.keys()[0]
-        print 'Connecting to VEGAS bank', bank
-
-        bank_url = self.urls[firstavailable]
-
- 
-        #  Also, call client to subscribe to the zmq socket. NOTICE: we
-        #  additionally pass in a reference to self (ZMQWebSocket instance).
-        connect_to_bank(bank, bank_url, self.publisher_socket, self)
-
+        # send message to client about what banks are active
+        self.write_message(['bank_config', ACTIVE_MOCK_BANKS]);
+        
     def on_message(self, bank):
         """
         This method is called when the server responds.  See send call in the
         onmessage function in Display.js in the client code.
-        """
-        print 'Connecting to bank ' + bank
-        bank_url = self.urls[bank]
 
+        """
+        print 'Getting data from bank ' + bank
+        bank_url = "tcp://localhost:%s" % PUBLISHER_PORT[bank]
+
+        #  NB: we additionally pass in a reference to self (ZMQWebSocket instance).
         connect_to_bank(bank, bank_url, self.publisher_socket, self)
 
     def write_message(self, msg):

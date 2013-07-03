@@ -10,20 +10,25 @@ NCHANS = 1024 # 32768 is max number of channels with VEGAS
 
 def mock_zmq_publisher(port):
     context = zmq.Context()
-    socket  = context.socket(zmq.PUB)
+    socket  = context.socket(zmq.REP)
     socket.bind("tcp://*:%s" % port)
     
     print "Running server on port: ", port
     
     # serves NREQUESTS requests and dies
-    for reqnum in range(NREQUESTS):
+    reqnum = 0
+#    for reqnum in range(NREQUESTS):
+    while True:
+
+        socket.recv()
 
         # Wait for next request from client
         data = [random.randrange(0,98765) for i in xrange(NCHANS)]
         
         # the following will eventually be replaced with a protobuf
         socket.send_pyobj(data)
-        print('sent data',reqnum)
-        time.sleep(1)
+        # print('sent data',reqnum)
+        # reqnum += 1
+
         
     socket.send_pyobj('close')

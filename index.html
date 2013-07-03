@@ -31,11 +31,14 @@
         position: absolute;
         left: 50px;
       }
+      span {
+        color: grey;
+      }
     </style>
   </head>
   <body class="claro">
+    <div id='header' style="position: absolute; left: 50px; top: 10px; font-size: 20; font-weight: bold;"></div>
     <div id='display'>
-
       <!-- setting a high z-index on the "axis" canvas puts it at the top
            canvas element stack.  that means it sits above waterfall1
            and waterfall2 and will be the one to handle mouse events
@@ -63,15 +66,15 @@
     <div id='controls' style="position: absolute; left: 812px; top:20px;">
       <h1>Controls</h1><br/>
       <form>
-         <input type="radio" name="bank" value="a" checked>Bank A</br>
-         <input type="radio" name="bank" value="b">Bank B</br>
-         <input type="radio" name="bank" value="c">Bank C</br>
-         <input type="radio" name="bank" value="d">Bank D</br>
-         <input type="radio" name="bank" value="e">Bank E</br>
-         <input type="radio" name="bank" value="f">Bank F</br>
-         <input type="radio" name="bank" value="g">Bank G</br>
-         <input type="radio" name="bank" value="h">Bank H</br>
-         <input id="submitBank" type="button" value="Submit"></input>
+         <input class='radio' id='bankA' type="radio" name="bank" value="A" disabled><span id='bankA-txt'>Bank A</span></br>
+         <input class='radio' id='bankB' type="radio" name="bank" value="B" disabled><span id='bankB-txt'>Bank B</span></br>
+         <input class='radio' id='bankC' type="radio" name="bank" value="C" disabled><span id='bankC-txt'>Bank C</span></br>
+         <input class='radio' id='bankD' type="radio" name="bank" value="D" disabled><span id='bankD-txt'>Bank D</span></br>
+         <input class='radio' id='bankE' type="radio" name="bank" value="E" disabled><span id='bankE-txt'>Bank E</span></br>
+         <input class='radio' id='bankF' type="radio" name="bank" value="F" disabled><span id='bankF-txt'>Bank F</span></br>
+         <input class='radio' id='bankG' type="radio" name="bank" value="G" disabled><span id='bankG-txt'>Bank G</span></br>
+         <input class='radio' id='bankH' type="radio" name="bank" value="H" disabled><span id='bankH-txt'>Bank H</span></br>
+         <input id="submitBank" type="button" value="Submit" disabled></input>
       </form>
     </div>
 
