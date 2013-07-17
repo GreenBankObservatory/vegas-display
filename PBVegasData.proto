@@ -1,0 +1,61 @@
+/*******************************************************************
+ *  Google Protocol Buffer definition VEGAS backend data
+ *
+ *  Copyright (C) 2012 Associated Universities, Inc. Washington DC, USA.
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but
+ *  WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ *  Correspondence concerning GBT software should be addressed as follows:
+ *  GBT Operations
+ *  National Radio Astronomy Observatory
+ *  P. O. Box 2
+ *  Green Bank, WV 24944-0002 USA
+ *
+ *******************************************************************/
+
+message pbVegasData
+{
+    repeated float data = 1;
+    repeated double center_freq = 2;
+    repeated int64 data_dims = 3;
+    repeated int32 cal_state = 4;
+    repeated int32 sig_ref_state = 5;
+    repeated float integration_time = 6;
+
+    optional double time = 20;
+    optional int64 time_counter = 21;
+    optional int64 integration = 22;
+    optional float exposure = 23;
+    optional string object = 24;
+    optional float azimuth = 25;
+    optional float elevation = 26;
+    optional float bmaj = 27;
+    optional float bmin = 28;
+    optional float bpa = 29;
+    optional int64 accumid = 30;
+    optional int64 sttspec = 31;
+    optional int64 stpspec = 32;
+    optional float center_freq_idx = 33;
+    optional double ra = 34;
+    optional double dec = 35;
+    optional int64 data_len = 36;
+    optional int64 number_phases = 37;
+    optional int64 number_spectra = 38;
+    optional int64 number_stokes = 39;
+    optional string polarization = 40;
+    optional int64 number_channels = 41;
+    optional float reference_channel = 42;
+    optional float fpga_clock = 43;
+}
