@@ -5,33 +5,21 @@
     <link rel="stylesheet" href="/static/assets/app/resources/app.css">
   </head>
   <body class="claro">
-    <div id='header' style="position: absolute; left: 50px; top: 10px; font-size: 20; font-weight: bold;"></div>
+    <div id='header'></div>
     <div id='display'>
       <!-- setting a high z-index on the "axis" canvas puts it at the top
            canvas element stack.  that means it sits above waterfall1
            and waterfall2 and will be the one to handle mouse events
            in areas where they overlap.
       -->
-      <canvas id="axis"
-              width="512px"
-              height="500px"
-              style="top:50px; z-index: 1; border:1px solid #000000;">
-      </canvas>
-      <canvas id="waterfall1"
-              width="512px"
-              height="500px"
-              style="top:-500px; border:0px solid blue;">
-      </canvas>
-      <canvas id="waterfall2"
-              width="512px"
-              height="500px"
-              style="top:50px; border:0px solid pink;">
-      </canvas>
+      <canvas id="axis" width="512px" height="500px"></canvas>
+      <canvas id="waterfall1" width="512px" height="500px"></canvas>
+      <canvas id="waterfall2" width="512px" height="500px"></canvas>
       <div id="timeseries"></div>
-      <div id="spectra"></div> <!--  margin: 5px auto 0px auto; -->
+      <div id="spectra"></div>
     </div>
 
-    <div id='controls' style="position: absolute; left: 812px; top:20px;">
+    <div id='controls'>
       <h1>Controls</h1><br/>
       <form>
          <input id='bankA' value="A" name='bank' type='radio'><span id='bankA-txt'>Bank A</span></br>
