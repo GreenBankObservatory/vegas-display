@@ -6,7 +6,17 @@
   </head>
   <body class="claro">
     <div id='header'></div>
-    <div id='position'>Channel 1, Time Interval 1</div>
+    <div id='position'>
+      <table>
+        <tr>
+          <td>
+            Channel 1, Time Interval 1
+            </td>
+          <td>
+          </td>
+        </tr>
+      </table>
+    </div>
     <div id='left-sidebar' class='rotate-cclockwise'>VEGAS Data Display</div>
     <div id='display'>
       <!-- setting a high z-index on the "axis" canvas puts it at the top
@@ -25,19 +35,140 @@
     <div id='controls'>
       <h1>Controls</h1><br/>
       <form>
-         <input id='bankA' value="A" name='bank' type='radio'><span id='bankA-txt'>Bank A</span></br>
-         <input id='bankB' value="B" name='bank' type='radio'><span id='bankB-txt'>Bank B</span></br>
-         <input id='bankC' value="C" name='bank' type='radio'><span id='bankC-txt'>Bank C</span></br>
-         <input id='bankD' value="D" name='bank' type='radio'><span id='bankD-txt'>Bank D</span></br>
-         <input id='bankE' value="E" name='bank' type='radio'><span id='bankE-txt'>Bank E</span></br>
-         <input id='bankF' value="F" name='bank' type='radio'><span id='bankF-txt'>Bank F</span></br>
-         <input id='bankG' value="G" name='bank' type='radio'><span id='bankG-txt'>Bank G</span></br>
-         <input id='bankH' value="H" name='bank' type='radio'><span id='bankH-txt'>Bank H</span></br>
-         <input id="submitBank" type="button" value="Submit" disabled></input>
+        <table class="checkbox-grid">
+          <tr>
+            <td></td>
+            <td>1</td>
+            <td>2</td>
+            <td>3</td>
+            <td>4</td>
+            <td>5</td>
+            <td>6</td>
+            <td>7</td>
+            <td>8</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><input type="radio" name="W1" value="val_W1" disabled/></td>
+            <td><input type="radio" name="W2" value="val_W2" disabled/></td>
+            <td><input type="radio" name="W3" value="val_W3" disabled/></td>
+            <td><input type="radio" name="W4" value="val_W4" disabled/></td>
+            <td><input type="radio" name="W5" value="val_W5" disabled/></td>
+            <td><input type="radio" name="W6" value="val_W6" disabled/></td>
+            <td><input type="radio" name="W7" value="val_W7" disabled/></td>
+            <td><input type="radio" name="W8" value="val_W8" disabled/></td>
+          </tr>
+          <tr>
+            <td><input id='bankA' value="A" name='bank' type='radio'>
+              <span id='bankA-txt'>A</span>
+            </td>
+            <td><input type="checkbox" name="A1" value="val_A1" disabled/></td>
+            <td><input type="checkbox" name="A2" value="val_A2" disabled/></td>
+            <td><input type="checkbox" name="A3" value="val_A3" disabled/></td>
+            <td><input type="checkbox" name="A4" value="val_A4" disabled/></td>
+            <td><input type="checkbox" name="A5" value="val_A5" disabled/></td>
+            <td><input type="checkbox" name="A6" value="val_A6" disabled/></td>
+            <td><input type="checkbox" name="A7" value="val_A7" disabled/></td>
+            <td><input type="checkbox" name="A8" value="val_A8" disabled/></td>
+          <tr/>
+          <tr>
+            <td><input id='bankB' value="B" name='bank' type='radio'>
+              <span id='bankB-txt'>B</span>
+            </td>
+            <td><input type="checkbox" name="B1" value="val_B1" disabled/></td>
+            <td><input type="checkbox" name="B2" value="val_B2" disabled/></td>
+            <td><input type="checkbox" name="B3" value="val_B3" disabled/></td>
+            <td><input type="checkbox" name="B4" value="val_B4" disabled/></td>
+            <td><input type="checkbox" name="B5" value="val_B5" disabled/></td>
+            <td><input type="checkbox" name="B6" value="val_B6" disabled/></td>
+            <td><input type="checkbox" name="B7" value="val_B7" disabled/></td>
+            <td><input type="checkbox" name="B8" value="val_B8" disabled/></td>
+          </tr>
+          <tr>
+            <td><input id='bankC' value="C" name='bank' type='radio'>
+              <span id='bankC-txt'>C</span>
+            </td>
+            <td><input type="checkbox" name="C1" value="val_C1" disabled/></td>
+            <td><input type="checkbox" name="C2" value="val_C2" disabled/></td>
+            <td><input type="checkbox" name="C3" value="val_C3" disabled/></td>
+            <td><input type="checkbox" name="C4" value="val_C4" disabled/></td>
+            <td><input type="checkbox" name="C5" value="val_C5" disabled/></td>
+            <td><input type="checkbox" name="C6" value="val_C6" disabled/></td>
+            <td><input type="checkbox" name="C7" value="val_C7" disabled/></td>
+            <td><input type="checkbox" name="C8" value="val_C8" disabled/></td>
+          </tr>
+          <tr>
+            <td><input id='bankD' value="D" name='bank' type='radio'>
+              <span id='bankD-txt'>D</span>
+            </td>
+            <td><input type="checkbox" name="D1" value="val_D1" disabled/></td>
+            <td><input type="checkbox" name="D2" value="val_D2" disabled/></td>
+            <td><input type="checkbox" name="D3" value="val_D3" disabled/></td>
+            <td><input type="checkbox" name="D4" value="val_D4" disabled/></td>
+            <td><input type="checkbox" name="D5" value="val_D5" disabled/></td>
+            <td><input type="checkbox" name="D6" value="val_D6" disabled/></td>
+            <td><input type="checkbox" name="D7" value="val_D7" disabled/></td>
+            <td><input type="checkbox" name="D8" value="val_D8" disabled/></td>
+          </tr>
+          <tr>
+            <td><input id='bankE' value="E" name='bank' type='radio'>
+              <span id='bankE-txt'>E</span>
+            </td>
+            <td><input type="checkbox" name="E1" value="val_E1" disabled/></td>
+            <td><input type="checkbox" name="E2" value="val_E2" disabled/></td>
+            <td><input type="checkbox" name="E3" value="val_E3" disabled/></td>
+            <td><input type="checkbox" name="E4" value="val_E4" disabled/></td>
+            <td><input type="checkbox" name="E5" value="val_E5" disabled/></td>
+            <td><input type="checkbox" name="E6" value="val_E6" disabled/></td>
+            <td><input type="checkbox" name="E7" value="val_E7" disabled/></td>
+            <td><input type="checkbox" name="E8" value="val_E8" disabled/></td>
+          </tr>
+          <tr>
+            <td><input id='bankF' value="F" name='bank' type='radio'>
+              <span id='bankF-txt'>F</span>
+            </td>
+            <td><input type="checkbox" name="F1" value="val_F1" disabled/></td>
+            <td><input type="checkbox" name="F2" value="val_F2" disabled/></td>
+            <td><input type="checkbox" name="F3" value="val_F3" disabled/></td>
+            <td><input type="checkbox" name="F4" value="val_F4" disabled/></td>
+            <td><input type="checkbox" name="F5" value="val_F5" disabled/></td>
+            <td><input type="checkbox" name="F6" value="val_F6" disabled/></td>
+            <td><input type="checkbox" name="F7" value="val_F7" disabled/></td>
+            <td><input type="checkbox" name="F8" value="val_F8" disabled/></td>
+          </tr>
+          <tr>
+            <td><input id='bankG' value="G" name='bank' type='radio'>
+              <span id='bankG-txt'>G</span>
+            </td>
+            <td><input type="checkbox" name="G1" value="val_G1" disabled/></td>
+            <td><input type="checkbox" name="G2" value="val_G2" disabled/></td>
+            <td><input type="checkbox" name="G3" value="val_G3" disabled/></td>
+            <td><input type="checkbox" name="G4" value="val_G4" disabled/></td>
+            <td><input type="checkbox" name="G5" value="val_G5" disabled/></td>
+            <td><input type="checkbox" name="G6" value="val_G6" disabled/></td>
+            <td><input type="checkbox" name="G7" value="val_G7" disabled/></td>
+            <td><input type="checkbox" name="G8" value="val_G8" disabled/></td>
+          </tr>
+          <tr>
+            <td><input id='bankH' value="H" name='bank' type='radio'>
+              <span id='bankH-txt'>H</span>
+            </td>
+            <td><input type="checkbox" name="H1" value="val_H1" disabled/></td>
+            <td><input type="checkbox" name="H2" value="val_H2" disabled/></td>
+            <td><input type="checkbox" name="H3" value="val_H3" disabled/></td>
+            <td><input type="checkbox" name="H4" value="val_H4" disabled/></td>
+            <td><input type="checkbox" name="H5" value="val_H5" disabled/></td>
+            <td><input type="checkbox" name="H6" value="val_H6" disabled/></td>
+            <td><input type="checkbox" name="H7" value="val_H7" disabled/></td>
+            <td><input type="checkbox" name="H8" value="val_H8" disabled/></td>
+          </tr>
+        </table>
+        <br><br><br>
+        <input id="submitBank" type="button" value="Submit" disabled></input>
       </form>
       <br><br><br>
       <form>
-         <input id="submitFreeze" type="button" value="Freeze"></input>
+        <input id="submitFreeze" type="button" value="Freeze"></input>
       </form>
     </div>
 
