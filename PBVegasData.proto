@@ -34,13 +34,29 @@ message pbVegasData
     repeated int32 sig_ref_state = 5;
     repeated float integration_time = 6;
 
-    optional double time = 20;
-    optional int64 time_counter = 21;
-    optional int64 integration = 22;
-    optional float exposure = 23;
-    optional string object = 24;
-    optional float azimuth = 25;
-    optional float elevation = 26;
+    repeated int32 isigref1 = 7;
+    repeated int32 isigref2 = 8;
+    repeated int32 ical = 9;
+    repeated int32 esigref1 = 10;
+    repeated int32 esigref2 = 11;
+    repeated int32 ecal = 12;
+    repeated string bankA = 13;
+    repeated int32 portA = 14;
+    repeated string bankB = 15;
+    repeated int32 portB = 16;
+    repeated string datatype = 17;
+    repeated int32 subband = 18;
+    repeated double crval1 = 19;
+    repeated double cdelt1 = 20;
+    repeated double freqres = 21;
+
+    optional double time = 22;
+    optional int64 time_counter = 23;
+    optional int64 integration = 24;
+    optional float exposure = 25;
+    optional string object = 26;
+    //optional float azimuth = 25;
+    //optional float elevation = 26;
     optional float bmaj = 27;
     optional float bmin = 28;
     optional float bpa = 29;
