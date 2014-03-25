@@ -1,179 +1,72 @@
 <html>
   <head>
     <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{title}}</title>
     <link rel="stylesheet" href="/static/assets/app/resources/app.css">
+    <link rel="stylesheet" 
+          href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
   </head>
-  <body class="claro">
-    <div id='header'></div>
-    <div id='metadata'></div>
-    <div id='position'>Channel 1, Time Interval 1</div>
-    <div id='left-sidebar' class='rotate-cclockwise'>VEGAS Data Display</div>
-    <div id='display'>
-      <!-- setting a high z-index on the "axis" canvas puts it at the top
-           canvas element stack.  that means it sits above waterfall1
-           and waterfall2 and will be the one to handle mouse events
-           in areas where they overlap.
-      -->
-      <canvas id="axis" width="512px" height="500px"></canvas>
-      <canvas id="waterfall1" width="512px" height="500px"></canvas>
-      <canvas id="waterfall2" width="512px" height="500px"></canvas>
-      <div id="timeseries" class='rotate-clockwise'></div>
-      <div id='spec-ylabel' class='rotate-cclockwise'>Counts</div>
-      <div id="spectra"></div>
-    </div>
+  <body>
+    <div id="tabs">
+      <div id="tab-W">
+        <div id="header"></div>
+        <div id="crosshair-position">Column 1, Row 1</div>
+	<div id="metadata"></div>
+        <div id="left-sidebar">VEGAS Data Display</div>
+        <div id="display">
+          <!-- setting a high z-index on the "axis" canvas puts it at the top
+          canvas element stack.  that means it sits above waterfallA
+          and waterfall2 and will be the one to handle mouse events
+          in areas where they overlap.
+          -->
+          <canvas id="axis"></canvas>
+          <canvas id="waterfallA" width="512px" height="500px"></canvas>
+          <canvas id="waterfallB" width="512px" height="500px"></canvas>
+          <div id="timeseries" class="rotate-clockwise"></div>
+	  <div id="bank-choice">
+	      <input type="radio" id="bankA" name="bank" value="A">
+	      <label for="bankA">A</label>
+	      <input type="radio" id="bankB" name="bank" value="B">
+	      <label for="bankB">B</label>
+	      <input type="radio" id="bankC" name="bank" value="C">
+	      <label for="bankC">C</label>
+	      <input type="radio" id="bankD" name="bank" value="D">
+	      <label for="bankD">D</label>
+	      <input type="radio" id="bankE" name="bank" value="E">
+	      <label for="bankE">E</label>
+	      <input type="radio" id="bankF" name="bank" value="F">
+	      <label for="bankF">F</label>
+	      <input type="radio" id="bankG" name="bank" value="G">
+	      <label for="bankG">G</label>
+	      <input type="radio" id="bankH" name="bank" value="H">
+	      <label for="bankH">H</label>
+	  </div>
+          <div id="waterfall-spectrum"></div>
+        </div>
 
-    <div id='controls'>
-      <h1>Controls</h1><br/>
-      <form>
-        <table class="checkbox-grid">
-          <tr>
-            <td></td>
-            <td>1</td>
-            <td>2</td>
-            <td>3</td>
-            <td>4</td>
-            <td>5</td>
-            <td>6</td>
-            <td>7</td>
-            <td>8</td>
-          </tr>
-          <tr>
-            <td></td>
-            <td><input type="radio" name="W1" value="val_W1" disabled/></td>
-            <td><input type="radio" name="W2" value="val_W2" disabled/></td>
-            <td><input type="radio" name="W3" value="val_W3" disabled/></td>
-            <td><input type="radio" name="W4" value="val_W4" disabled/></td>
-            <td><input type="radio" name="W5" value="val_W5" disabled/></td>
-            <td><input type="radio" name="W6" value="val_W6" disabled/></td>
-            <td><input type="radio" name="W7" value="val_W7" disabled/></td>
-            <td><input type="radio" name="W8" value="val_W8" disabled/></td>
-          </tr>
-          <tr>
-            <td><input id='bankA' value="A" name='bank' type='radio'>
-              <span id='bankA-txt'>A</span>
-            </td>
-            <td><input type="checkbox" name="A1" value="val_A1" disabled/></td>
-            <td><input type="checkbox" name="A2" value="val_A2" disabled/></td>
-            <td><input type="checkbox" name="A3" value="val_A3" disabled/></td>
-            <td><input type="checkbox" name="A4" value="val_A4" disabled/></td>
-            <td><input type="checkbox" name="A5" value="val_A5" disabled/></td>
-            <td><input type="checkbox" name="A6" value="val_A6" disabled/></td>
-            <td><input type="checkbox" name="A7" value="val_A7" disabled/></td>
-            <td><input type="checkbox" name="A8" value="val_A8" disabled/></td>
-          <tr/>
-          <tr>
-            <td><input id='bankB' value="B" name='bank' type='radio'>
-              <span id='bankB-txt'>B</span>
-            </td>
-            <td><input type="checkbox" name="B1" value="val_B1" disabled/></td>
-            <td><input type="checkbox" name="B2" value="val_B2" disabled/></td>
-            <td><input type="checkbox" name="B3" value="val_B3" disabled/></td>
-            <td><input type="checkbox" name="B4" value="val_B4" disabled/></td>
-            <td><input type="checkbox" name="B5" value="val_B5" disabled/></td>
-            <td><input type="checkbox" name="B6" value="val_B6" disabled/></td>
-            <td><input type="checkbox" name="B7" value="val_B7" disabled/></td>
-            <td><input type="checkbox" name="B8" value="val_B8" disabled/></td>
-          </tr>
-          <tr>
-            <td><input id='bankC' value="C" name='bank' type='radio'>
-              <span id='bankC-txt'>C</span>
-            </td>
-            <td><input type="checkbox" name="C1" value="val_C1" disabled/></td>
-            <td><input type="checkbox" name="C2" value="val_C2" disabled/></td>
-            <td><input type="checkbox" name="C3" value="val_C3" disabled/></td>
-            <td><input type="checkbox" name="C4" value="val_C4" disabled/></td>
-            <td><input type="checkbox" name="C5" value="val_C5" disabled/></td>
-            <td><input type="checkbox" name="C6" value="val_C6" disabled/></td>
-            <td><input type="checkbox" name="C7" value="val_C7" disabled/></td>
-            <td><input type="checkbox" name="C8" value="val_C8" disabled/></td>
-          </tr>
-          <tr>
-            <td><input id='bankD' value="D" name='bank' type='radio'>
-              <span id='bankD-txt'>D</span>
-            </td>
-            <td><input type="checkbox" name="D1" value="val_D1" disabled/></td>
-            <td><input type="checkbox" name="D2" value="val_D2" disabled/></td>
-            <td><input type="checkbox" name="D3" value="val_D3" disabled/></td>
-            <td><input type="checkbox" name="D4" value="val_D4" disabled/></td>
-            <td><input type="checkbox" name="D5" value="val_D5" disabled/></td>
-            <td><input type="checkbox" name="D6" value="val_D6" disabled/></td>
-            <td><input type="checkbox" name="D7" value="val_D7" disabled/></td>
-            <td><input type="checkbox" name="D8" value="val_D8" disabled/></td>
-          </tr>
-          <tr>
-            <td><input id='bankE' value="E" name='bank' type='radio'>
-              <span id='bankE-txt'>E</span>
-            </td>
-            <td><input type="checkbox" name="E1" value="val_E1" disabled/></td>
-            <td><input type="checkbox" name="E2" value="val_E2" disabled/></td>
-            <td><input type="checkbox" name="E3" value="val_E3" disabled/></td>
-            <td><input type="checkbox" name="E4" value="val_E4" disabled/></td>
-            <td><input type="checkbox" name="E5" value="val_E5" disabled/></td>
-            <td><input type="checkbox" name="E6" value="val_E6" disabled/></td>
-            <td><input type="checkbox" name="E7" value="val_E7" disabled/></td>
-            <td><input type="checkbox" name="E8" value="val_E8" disabled/></td>
-          </tr>
-          <tr>
-            <td><input id='bankF' value="F" name='bank' type='radio'>
-              <span id='bankF-txt'>F</span>
-            </td>
-            <td><input type="checkbox" name="F1" value="val_F1" disabled/></td>
-            <td><input type="checkbox" name="F2" value="val_F2" disabled/></td>
-            <td><input type="checkbox" name="F3" value="val_F3" disabled/></td>
-            <td><input type="checkbox" name="F4" value="val_F4" disabled/></td>
-            <td><input type="checkbox" name="F5" value="val_F5" disabled/></td>
-            <td><input type="checkbox" name="F6" value="val_F6" disabled/></td>
-            <td><input type="checkbox" name="F7" value="val_F7" disabled/></td>
-            <td><input type="checkbox" name="F8" value="val_F8" disabled/></td>
-          </tr>
-          <tr>
-            <td><input id='bankG' value="G" name='bank' type='radio'>
-              <span id='bankG-txt'>G</span>
-            </td>
-            <td><input type="checkbox" name="G1" value="val_G1" disabled/></td>
-            <td><input type="checkbox" name="G2" value="val_G2" disabled/></td>
-            <td><input type="checkbox" name="G3" value="val_G3" disabled/></td>
-            <td><input type="checkbox" name="G4" value="val_G4" disabled/></td>
-            <td><input type="checkbox" name="G5" value="val_G5" disabled/></td>
-            <td><input type="checkbox" name="G6" value="val_G6" disabled/></td>
-            <td><input type="checkbox" name="G7" value="val_G7" disabled/></td>
-            <td><input type="checkbox" name="G8" value="val_G8" disabled/></td>
-          </tr>
-          <tr>
-            <td><input id='bankH' value="H" name='bank' type='radio'>
-              <span id='bankH-txt'>H</span>
-            </td>
-            <td><input type="checkbox" name="H1" value="val_H1" disabled/></td>
-            <td><input type="checkbox" name="H2" value="val_H2" disabled/></td>
-            <td><input type="checkbox" name="H3" value="val_H3" disabled/></td>
-            <td><input type="checkbox" name="H4" value="val_H4" disabled/></td>
-            <td><input type="checkbox" name="H5" value="val_H5" disabled/></td>
-            <td><input type="checkbox" name="H6" value="val_H6" disabled/></td>
-            <td><input type="checkbox" name="H7" value="val_H7" disabled/></td>
-            <td><input type="checkbox" name="H8" value="val_H8" disabled/></td>
-          </tr>
-        </table>
-        <br><br><br>
-        <input id="submitBank" type="button" value="Submit" disabled></input>
-      </form>
-      <br><br><br>
-      <form>
-        <input id="submitFreeze" type="button" value="Freeze"></input>
-      </form>
-    </div>
+      </div>
+      <div id="tab-0">
+	<div id="spectrum-1" class="spectrum"></div>
+	<div id="spectrum-2" class="spectrum"></div>
+	<div id="spectrum-3" class="spectrum"></div>
+	<div id="spectrum-4" class="spectrum"></div>
+	<div id="spectrum-5" class="spectrum"></div>
+	<div id="spectrum-6" class="spectrum"></div>
+	<div id="spectrum-7" class="spectrum"></div>
+	<div id="spectrum-8" class="spectrum"></div>
+      </div>
 
-    <script>
-      dojoConfig = {
-        async: 1,
-        tlmSiblingOfDojo: 0,
-        isDebug: 1,
-        cacheBust: new Date(),
-        //gfxRenderer: "canvas, svg, silverligh, vml",
-      }
-    </script>
-    <script src="/static/assets/dojo/dojo.js"></script>
-    <script src="/static/assets/app/run.js"></script>
+
+      <button id="mybutton" style="left:800" hidden="hidden">Get Data</button>
+
+    </div>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+    <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="/static/assets/app/Display.js"></script>
   </body>
 </html>
 

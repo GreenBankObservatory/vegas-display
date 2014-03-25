@@ -74,4 +74,6 @@ message pbVegasData
     optional int64 number_channels = 41;
     optional float reference_channel = 42;
     optional float fpga_clock = 43;
+    optional int32 scan_number = 44;
+    optional string project_id = 45;
 }
