@@ -22,7 +22,10 @@ from PBVegasData_pb2 import *
 
 from DataStreamUtils import get_service_endpoints, get_directory_endpoints
 
+DEBUG = False
 TEST = False
+BANK_NUM = {'A':0, 'B':1, 'C':2, 'D':3,
+            'E':4, 'F':5, 'G':6, 'H':7}
 
 NS_REGISTER = 0
 NS_REQUEST = 1
@@ -61,19 +64,22 @@ class DataRetriever():
                 df.ParseFromString(manager_response[1])
                 if key.endswith("state"):
                     response = str(df.val_struct[0].val_string[0])
-                print df.name, '=', response
+                if DEBUG:
+                    print df.name, '=', response
                 return response
             else:
                 df = pbVegasData()
                 df.ParseFromString(manager_response[1])
-                print 'project: ', df.project_id
-                print 'scan: ', df.scan_number
-                print "integration: ", df.integration
-                print "time: ", df.time
-                print "cals: ", df.cal_state
-                print "sig_ref: ", df.sig_ref_state
-                print "data_dims: ", df.data_dims
-                print "data[:8]: ", df.data[:8]
+                if DEBUG:
+                    print 'project: ', df.project_id
+                    print 'scan: ', df.scan_number
+                    print "integration: ", df.integration
+                    print "time: ", df.time
+                    print "cals: ", df.cal_state
+                    print "sig_ref: ", df.sig_ref_state
+                    print "data_dims: ", df.data_dims
+                    print "data[:8]: ", df.data[:8]
+    
                 arr = np.array(df.data)
                 if TEST:
                     spectrum = arr[:1024]
@@ -81,11 +87,14 @@ class DataRetriever():
                     dims = df.data_dims[::-1]
                     arr = arr.reshape(dims)
                     spectrum = arr[0,0,:]
-                print 'max in arr', np.max(arr)
-                print 'min in arr', np.min(arr)
-                print 'mean in arr', np.mean(arr)
-                print 'max in spectrum', np.max(spectrum)
-                print 'ptp in spectrum', np.ptp(spectrum)
+    
+                if DEBUG:
+                    print 'max in arr', np.max(arr)
+                    print 'min in arr', np.min(arr)
+                    print 'mean in arr', np.mean(arr)
+                    print 'max in spectrum', np.max(spectrum)
+                    print 'ptp in spectrum', np.ptp(spectrum)
+    
                 project = str(df.project_id)
                 scan = int(df.scan_number)
                 integration = int(df.integration)
@@ -120,11 +129,14 @@ class DataRetriever():
         request_url = context.socket(zmq.REQ)
         if 'NOT FOUND' in device_url:
             print 'Bank', bank, device_url
-            client_socket.write_message(['error', bank])
+            # client_socket.write_message(['error', bank])
+            return ['error']
         else:
             request_url.connect(device_url)
 
-            print '------------'
+            if DEBUG:
+                print '------------'
+    
             request_url.send(str(stateKey))
             response = request_url.recv_multipart()
             state = self.handle_response(response)
@@ -134,14 +146,17 @@ class DataRetriever():
                 response = request_url.recv_multipart()
 
                 scan, project, spectrum, integration = self.handle_response(response)
-                print "scan {0} ~ prevscan {1} int {2} ~ prevint {3}\n\n".format(scan,self.previous_scan,integration,self.previous_integration)
+                if DEBUG:
+                    print "scan {0} ~ prevscan {1} int {2} ~ prevint {3}\n\n".format(scan,self.previous_scan,integration,self.previous_integration)
                 if scan != self.previous_scan or integration != self.previous_integration:
                     self.previous_scan = scan
                     self.previous_integration = integration
-                    return ['data',str(bank), project, scan, state, integration, spectrum]
+                    return ['ok', spectrum, project, scan, state, integration]
                 else:
-                    print "\nScan and integration numbers haven't changed for bank.  Not sending to display {0},{1}\n\n".format(scan,integration)
-                    return None
+                    print "Scan and integration numbers haven't changed for bank.  Not sending to display {0},{1}".format(scan,integration)
+                    return ['same']
+            else:
+                return ['error']
 
 class ZMQWebSocket(websocket.WebSocketHandler):
     def open(self):
@@ -161,9 +176,9 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         self.active_banks = None
 
         # send message to client about what banks are active
-        banks = {'A':True, 'B':True, 'C':True, 'D':True, 'E':True, 'F':True, 'G':True}
+        self.banks = {'A':True, 'B':True, 'C':True, 'D':True, 'E':True, 'F':True, 'G':True, 'H':True}
 
-        for bank in banks.keys():
+        for bank in self.banks.keys():
             context = zmq.Context(1)
             if TEST:
                 major_key = "VEGAS"
@@ -181,26 +196,41 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             request_url = context.socket(zmq.REQ)
             if 'NOT FOUND' in device_url:
                 print 'Bank', bank, device_url
-                banks[bank] = False
+                self.banks[bank] = False
         
-        self.active_banks = [b for b in banks if banks[b]]
+        self.active_banks = [b for b in self.banks if self.banks[b]]
         print 'Active banks',self.active_banks
         self.write_message(['bank_config', self.active_banks])
 
-    def on_message(self, bank):
+    def on_message(self, waterfall_bank):
         """Handle message from client.
 
         This method is called when the client responds at the end of
         the bank_config step in Display.js.
 
         """
-        print '--------------------\nGetting data from bank ' + bank
+        print '------------'
+        print 'Requesting BANK', waterfall_bank
+        print '------------'
 
-        #  NB: we additionally pass a reference to self (ZMQWebSocket instance).
-        # for b in active_banks:
-        response = self.messageRetriever.get_data_sample(bank, self)
-        if response:
-            self.write_message(response)
+        all_banks_spectra = []
+        metadata = []
+        for b in self.banks:
+            if self.banks[b]:
+                response = self.messageRetriever.get_data_sample(b, self)
+                if response[0] == 'ok':
+                    spectrum = response[1]
+                    if b == waterfall_bank:
+                        project, scan, state, integration = response[2:]
+                        metadata = [project, scan, state, integration]
+                else:
+                    spectrum = np.zeros(NCHANS)
+            else:
+                spectrum = np.zeros(NCHANS)
+
+            all_banks_spectra.append(spectrum)
+
+        self.write_message(['data', waterfall_bank, metadata, all_banks_spectra])
 
     def write_message(self, msg):
         """Send a message to the client.
@@ -217,24 +247,32 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         if not msg:
             print 'There is no message to write.  Quitting.'
             sys.exit()
+
         elif 'data' == msg[0]:
-            bank, project, scan, state, integration, spectrum = msg[1:]
-            self.databuffer[bank].append(spectrum)
+            command_to_client = msg[0]
+            waterfall_bank = str(msg[1])
+            metadata =  msg[2] # proj, scan, state, integration
+            all_banks_spectra = msg[3]
 
-            rebinned_data = [np.mean(x) 
-                             for x 
-                             in spectrum.reshape((NCHANS,len(spectrum)/NCHANS))]
+            # self.databuffer[bank].append(spectrum)
 
-            spectra = []
-            for x in range(8):
-                spectra.append([bank, project, scan, state, integration, rebinned_data,
-                                np.floor(min(rebinned_data)),
-                                np.ceil(max(rebinned_data))])
+            rebinned_spectra = []
+            for spectrum in all_banks_spectra:
+                rebinned_spectrum = [np.mean(x) 
+                                     for x 
+                                     in spectrum.reshape((NCHANS,len(spectrum)/NCHANS))]
+                rebinned_spectra.append(rebinned_spectrum)
 
-            data_to_send = [msg[0], spectra]
+            colormin = np.floor(min(rebinned_spectra[ BANK_NUM[waterfall_bank] ]))
+            colormax = np.ceil(max(rebinned_spectra[ BANK_NUM[waterfall_bank] ]))
+            color_limits = [colormin, colormax]
 
-            for idx,dd in enumerate(data_to_send):
-                print idx,type(dd)
+            data_to_send = [command_to_client, waterfall_bank, metadata, color_limits, rebinned_spectra]
+            print 'sending', command_to_client, waterfall_bank, metadata, color_limits
+
+            if DEBUG:
+                for idx,dd in enumerate(data_to_send):
+                    print idx,type(dd)
 
             # we send the data to the client as a unicode string
             data = unicode(data_to_send)
