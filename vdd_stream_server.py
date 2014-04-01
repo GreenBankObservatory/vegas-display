@@ -8,7 +8,7 @@ from tornado import websocket
 import tornado.web
 import tornado.ioloop
 
-from multiprocessing import Process
+import multiprocessing
 from collections import deque
 from collections import defaultdict
 import pickle
@@ -20,10 +20,13 @@ import subprocess
 from PBDataDescriptor_pb2 import *
 from PBVegasData_pb2 import *
 
+from pprint import pprint
+import pdb
+
 from DataStreamUtils import get_service_endpoints, get_directory_endpoints
 
-DEBUG = False
-TEST = False
+DEBUG = True
+LIVETEST = False
 BANK_NUM = {'A':0, 'B':1, 'C':2, 'D':3,
             'E':4, 'F':5, 'G':6, 'H':7}
 
@@ -52,13 +55,14 @@ class DataRetriever():
 
         if el == 1:  # Got an error
             if manager_response[0] == "E_NOKEY":
-                print "No key/value pair %s found on server!" % (key)
+                print "No key/value pair found on server!"
                 return None
         elif el > 1:
             # first element is the key
             # the following elements are the values
                 #print manager_response
             key = manager_response[0]
+
             if not key.endswith("Data"):
                 df = PBDataField()
                 df.ParseFromString(manager_response[1])
@@ -70,6 +74,7 @@ class DataRetriever():
             else:
                 df = pbVegasData()
                 df.ParseFromString(manager_response[1])
+                #pdb.set_trace()
                 if DEBUG:
                     print 'project: ', df.project_id
                     print 'scan: ', df.scan_number
@@ -79,14 +84,11 @@ class DataRetriever():
                     print "sig_ref: ", df.sig_ref_state
                     print "data_dims: ", df.data_dims
                     print "data[:8]: ", df.data[:8]
-    
+
                 arr = np.array(df.data)
-                if TEST:
-                    spectrum = arr[:1024]
-                else:
-                    dims = df.data_dims[::-1]
-                    arr = arr.reshape(dims)
-                    spectrum = arr[0,0,:]
+                dims = df.data_dims[::-1]
+                arr = arr.reshape(dims)
+                spectrum = arr[0,0,:]
     
                 if DEBUG:
                     print 'max in arr', np.max(arr)
@@ -111,8 +113,8 @@ class DataRetriever():
         client_socket -- from ZMQSocket class in this file
 
         """
-        context = zmq.Context(1)
-        if TEST:
+        context = zmq.Context()
+        if LIVETEST:
             major_key = "VEGAS"
             minor_key = "Bank{0}Mgr".format(bank)
         else:
@@ -153,8 +155,9 @@ class DataRetriever():
                     self.previous_integration = integration
                     return ['ok', spectrum, project, scan, state, integration]
                 else:
-                    print "Scan and integration numbers haven't changed for bank.  Not sending to display {0},{1}".format(scan,integration)
-                    return ['same']
+                    print "Scan and integration numbers haven't changed for bank {2}. Integration: {0} Bank: {1}".format(scan,integration,bank)
+#                    return ['same']
+                    return ['ok', spectrum, project, scan, state, integration]
             else:
                 return ['error']
 
@@ -179,8 +182,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         self.banks = {'A':True, 'B':True, 'C':True, 'D':True, 'E':True, 'F':True, 'G':True, 'H':True}
 
         for bank in self.banks.keys():
-            context = zmq.Context(1)
-            if TEST:
+            context = zmq.Context()
+            if LIVETEST:
                 major_key = "VEGAS"
                 minor_key = "Bank{0}Mgr".format(bank)
             else:
@@ -215,18 +218,23 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         all_banks_spectra = []
         metadata = []
+        pids = [] # process ids for parallel processing
+        result_queue = multiprocessing.Queue()
         for b in self.banks:
-            if self.banks[b]:
-                response = self.messageRetriever.get_data_sample(b, self)
-                if response[0] == 'ok':
-                    spectrum = response[1]
-                    if b == waterfall_bank:
-                        project, scan, state, integration = response[2:]
-                        metadata = [project, scan, state, integration]
-                else:
-                    spectrum = np.zeros(NCHANS)
+#            if self.banks[b]:
+#                p = multiprocessing.Process(target=self.messageRetriever.get_data_sample,
+#                                            args=(b, self,))
+#                pids.append(p)
+            response = self.messageRetriever.get_data_sample(b, self)
+            if response[0] == 'ok':
+                spectrum = response[1]
+                if b == waterfall_bank:
+                    project, scan, state, integration = response[2:]
+                    metadata = [project, scan, state, integration]
             else:
                 spectrum = np.zeros(NCHANS)
+#            else:
+#                spectrum = np.zeros(NCHANS)
 
             all_banks_spectra.append(spectrum)
 
@@ -278,7 +286,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             data = unicode(data_to_send)
 
         elif 'bank_config' == msg[0]:
-            print repr(msg)
+            if DEBUG:
+                print repr(msg)
             data = repr(msg)
         else:
             print repr(msg)
