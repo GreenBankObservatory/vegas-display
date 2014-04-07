@@ -103,7 +103,7 @@ class DataRetriever():
                     print "data_dims: ", df.data_dims
                     print "data[:8]: ", df.data[:8]
 
-                arr = np.array(df.data)
+                arr = np.array(df.data).astype('int')
                 if DO_PARSE:
                     dims = df.data_dims[::-1]
                     arr = arr.reshape(dims)
@@ -384,7 +384,7 @@ def listen_for_display_clients(port_number):
     print 'add listener'
     application.listen(port_number,'0.0.0.0')
     try:
-        print 'start ioloop listenting'
+        print 'start ioloop listenting to port', port_number
         tornado.ioloop.IOLoop.instance().start()
         print 'left ioloop'
     except(KeyboardInterrupt):
@@ -395,7 +395,4 @@ if __name__ == "__main__":
 
     # Handle requests from clients to pass data from the stream
     #
-    listen_for_display_clients(8888)
-    
-
-
+    listen_for_display_clients(7777)
