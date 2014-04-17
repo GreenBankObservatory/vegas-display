@@ -21,6 +21,7 @@ import signal # for timeout
 import subprocess
 from PBDataDescriptor_pb2 import *
 from PBVegasData_pb2 import *
+import json
 
 from pprint import pprint
 import pdb
@@ -28,7 +29,7 @@ from random import randint
 from DataStreamUtils import get_service_endpoints, get_directory_endpoints
 
 DO_PARSE = True
-DEBUG = False
+DEBUG = True
 LIVETEST = False
 BANK_NUM = {'A':0, 'B':1, 'C':2, 'D':3,
             'E':4, 'F':5, 'G':6, 'H':7}
@@ -93,21 +94,51 @@ class DataRetriever():
 
                     df = DF()
 
+                n_sig_states = len(set(df.sig_ref_state))
+                n_cal_states = len(set(df.cal_state))
+                n_subbands = len(set(df.subband))
+                n_chans, n_samplers, n_states = df.data_dims
                 if DEBUG:
                     print 'project: ', df.project_id
                     print 'scan: ', df.scan_number
                     print "integration: ", df.integration
                     print "time: ", df.time
-                    print "cals: ", df.cal_state
-                    print "sig_ref: ", df.sig_ref_state
+                    print "cals: ", n_cal_states
+                    print "sig_ref: ", n_sig_states
                     print "data_dims: ", df.data_dims
                     print "data[:8]: ", df.data[:8]
+                    print "subbands: ", n_subbands
+                    print "dims: ", n_chans, n_samplers, n_states
 
-                arr = np.array(df.data).astype('int')
+                arr = np.array(df.data)
                 if DO_PARSE:
-                    dims = df.data_dims[::-1]
-                    arr = arr.reshape(dims)
-                    spectrum = arr[0,0,:]
+                    arr = arr.reshape(df.data_dims[::-1])
+                    # average the cal-on/off pairs
+                    # this reduces the second dimension by 1/2
+                    # i.e. 2,14,1024 becomes 2,7,1024
+
+                    n_skip = (n_samplers/n_subbands)
+                    if DEBUG:
+                        print 'skip every ', n_skip
+                        
+                    if n_sig_states == 1:
+                        # assumes no SIG switching
+#                        arr = np.mean((arr[:,:,::2], arr[:,:,1::2]), axis=1)
+                        arr = np.mean(arr, axis=0)
+                        
+                        spectrum = arr[::n_skip,:].ravel()
+                    else:
+                        # just show the first states
+                        spectrum = arr[0,::n_skip,:].ravel()
+                        
+                    #pdb.set_trace()
+                    # normalize by dividing by integration time
+                    # !!! the following line needs to be smarter.   we need to choose the appropriate
+                    # !!! integration times instead of simply the first one in the array, but this
+                    # !!! is a good approximation of normalizing the data
+                    # !!! soon, the manager will be streaming normalized data anyway and this step
+                    # !!! will not be needed
+                    spectrum = spectrum / df.integration_time[0]
                 else:
                     spectrum = arr
     
@@ -198,7 +229,6 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         databuffer = defaultdict(default_factory)
         messageRetriever = DataRetriever()
 
-        msgSize = None
         nSpecInAve = None
         specAve = None # running average of spectra
         publisher_socket = None
@@ -271,7 +301,6 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         """
         print 'SOCKET OPENED'
-        self.msgSize = None
 
         if not self.connections:
             # Start service that reads spectra from manager
@@ -343,7 +372,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                     print idx,type(dd)
 
             # we send the data to the client as a unicode string
-            data = unicode(data_to_send)
+            #data = unicode(data_to_send)
+            data = json.dumps(data_to_send)
 
         elif 'bank_config' == msg[0]:
             if DEBUG:
@@ -352,11 +382,6 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         else:
             print repr(msg)
             data = repr(msg)
-
-        # the size of an 8bit Unicode string in bytes is length *2
-        # the following is an idiom for
-        # if x then do y, else no change (set x=x)
-        self.msgSize = self.msgSize or len(data) * 2
 
         # the following line sends the data to the JS client
         # python 3 syntax would be super().write_message(data)
