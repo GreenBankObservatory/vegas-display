@@ -76,4 +76,5 @@ message pbVegasData
     optional float fpga_clock = 43;
     optional int32 scan_number = 44;
     optional string project_id = 45;
+    optional float crpix1 = 46;
 }
