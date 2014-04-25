@@ -3,7 +3,7 @@ from pprint import pprint
 from random import randint
 import numpy as np
 
-LIVETEST = False
+LIVETEST = True
 DEBUG = True
 DO_PARSE = True
 
@@ -11,7 +11,7 @@ PORT_NUMBER = 7777
 
 BANK_NUM = {'A':0, 'B':1, 'C':2, 'D':3,
             'E':4, 'F':5, 'G':6, 'H':7}
-SERV_SNAPSHOT = 1
+
 NCHANS = 512  # number of channels for client to display
 
 

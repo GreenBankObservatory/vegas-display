@@ -1,5 +1,6 @@
 import pyfits
 import sys
+from server_config import *
 
 # define input files
 def filenames(projid, scannum):
