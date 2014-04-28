@@ -51,7 +51,7 @@ class VEGASReader():
             
             self.request_url[b] = self.context[b].socket(zmq.REQ)
 
-        print 'Initialized VEGASReader'
+        print 'Initialized VEGASReader', self.device_url, self.request_url
 
     def sky_frequencies(self, spectra, subbands, df):
 
@@ -157,7 +157,7 @@ class VEGASReader():
                                 sf = range(start,start+NCHANS)
                                 sky_frequencies.extend(sf)
 
-                        #sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
+                        sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
 
                         # rebin each of the spectra
                         rebinned_spectra = []
@@ -239,6 +239,8 @@ class VEGASReader():
 
         state = self.get_state(bank)
 
+        print 'bank {0} state {1}'.format(bank, state)
+
         if "Committed" == state or "Running" == state:
             self.request_url[bank].connect(self.device_url[bank])
             dataKey = "%s.%s:Data" % (self.major_key[bank], self.minor_key[bank])
@@ -248,7 +250,6 @@ class VEGASReader():
                 (project, scan, integration, spectrum) = self.handle_response(response)
             except:
                 print 'ERROR for',bank
-                pdb.set_trace()
                 return ['error']
 
             # if something changed, send 'ok'

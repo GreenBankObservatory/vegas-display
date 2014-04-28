@@ -12,7 +12,7 @@ import time
 import sys
 import json
 
-from data_retriever import VEGASReader
+from vegas_reader import VEGASReader
 
 class ZMQWebSocket(websocket.WebSocketHandler):
 
@@ -146,8 +146,12 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             spectra = msg[3]
 
             # set color limits for waterfall plot
-            colormin = np.floor(min(spectra[BANK_NUM[waterfall_bank]]))
-            colormax = np.ceil(max(spectra[BANK_NUM[waterfall_bank]]))
+            subband = 0
+            nparra = np.array(spectra[BANK_NUM[waterfall_bank]][subband])
+            if nparra.ndim == 2:
+                nparra = nparra[:,1]
+            colormin = np.floor(min(nparra))
+            colormax = np.ceil(max(nparra))
             color_limits = [colormin, colormax]
 
             data_to_send = [command_to_client, waterfall_bank,
