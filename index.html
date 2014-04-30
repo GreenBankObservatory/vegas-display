@@ -12,7 +12,9 @@
     <div id="tabs">
       <div id="tab-W">
         <div id="header"></div>
-        <div id="crosshair-position">Column 1, Row 1</div>
+	<div id="reset-crosshairs">Reset Crosshairs</div>
+	<div id="high-level-view">High Level View</div>
+        <div id="crosshair-position">Column 1, Row 0</div>
 	<div id="metadata"></div>
         <div id="left-sidebar">VEGAS Data Display</div>
         <div id="display">
@@ -43,11 +45,30 @@
 	      <input type="radio" id="bankH" name="bank" value="H">
 	      <label for="bankH">H</label>
 	  </div>
+	  <div id="subband-choice">
+	      <input type="radio" id="subband0" name="subband" value="0">
+	      <label for="subband0">0</label>
+	      <input type="radio" id="subband1" name="subband" value="1">
+	      <label for="subband1">1</label>
+	      <input type="radio" id="subband2" name="subband" value="2">
+	      <label for="subband2">2</label>
+	      <input type="radio" id="subband3" name="subband" value="3">
+	      <label for="subband3">3</label>
+	      <input type="radio" id="subband4" name="subband" value="4">
+	      <label for="subband4">4</label>
+	      <input type="radio" id="subband5" name="subband" value="5">
+	      <label for="subband5">5</label>
+	      <input type="radio" id="subband6" name="subband" value="6">
+	      <label for="subband6">6</label>
+	      <input type="radio" id="subband7" name="subband" value="7">
+	      <label for="subband7">7</label>
+	  </div>
           <div id="waterfall-spectrum"></div>
         </div>
 
       </div>
       <div id="tab-0">
+	<div id="spectrum-0" class="spectrum"></div>
 	<div id="spectrum-1" class="spectrum"></div>
 	<div id="spectrum-2" class="spectrum"></div>
 	<div id="spectrum-3" class="spectrum"></div>
@@ -55,11 +76,7 @@
 	<div id="spectrum-5" class="spectrum"></div>
 	<div id="spectrum-6" class="spectrum"></div>
 	<div id="spectrum-7" class="spectrum"></div>
-	<div id="spectrum-8" class="spectrum"></div>
       </div>
-
-
-      <button id="mybutton" style="left:800" hidden="hidden">Get Data</button>
 
     </div>
     

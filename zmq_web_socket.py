@@ -58,7 +58,12 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                 #  state
                 #  integration
                 #
-                response = vegasReader.get_data_sample(bank)
+                try:
+                    response = vegasReader.get_data_sample(bank)
+                except:
+                    print 'ERROR getting data sample'
+                    self.on_close()
+
                 if response[0] == 'error':
                     print 'writing zeros for',bank
                     spectrum = np.zeros((1,NCHANS)).tolist()
@@ -123,6 +128,11 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             if DEBUG: print 'we have data', self
             metadata = self.data[0][0]
             spectra = self.data[0][1]
+
+            for idx,x in enumerate(spectra):
+                if type(x) == type(np.ones(1)):
+                    spectra[idx] = spectra[idx].tolist()
+
             message = ['data', str(waterfall_bank), metadata, spectra]
             self.write_message(message)
 
@@ -140,38 +150,18 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         """
 
         if 'data' == msg[0]:
-            command_to_client = msg[0]
-            waterfall_bank = str(msg[1])
-            metadata =  msg[2] # proj, scan, state, integration, update_waterfall
-            spectra = msg[3]
-
-            # set color limits for waterfall plot
-            subband = 0
-            nparra = np.array(spectra[BANK_NUM[waterfall_bank]][subband])
-            if nparra.ndim == 2:
-                nparra = nparra[:,1]
-            colormin = np.floor(min(nparra))
-            colormax = np.ceil(max(nparra))
-            color_limits = [colormin, colormax]
-
-            data_to_send = [command_to_client, waterfall_bank,
-                            metadata, color_limits, spectra]
-
-            for idx,x in enumerate(data_to_send[3]):
-                if type(x) == type(np.ones(1)):
-                    data_to_send[3][idx] = data_to_send[3][idx].tolist()
-
             try:
-                data = json.dumps(data_to_send)
+                data = json.dumps(msg)
             except TypeError:
                 print 'FOUND A NUMPY ARRAY!'
-                print type(data_to_send[3][0])
+                print type(msg[3][0])
                 sys.exit()
 
         elif 'bank_config' == msg[0]:
             if DEBUG:
                 print repr(msg)
             data = repr(msg)
+
         else:
             print repr(msg)
             data = repr(msg)
@@ -182,13 +172,13 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
     def on_close(self):
 
-        self.connections.pop()
+        if self.connections:
+            self.connections.pop()
 
-        if not self.connections:
+        else:
             self.requesting_data = False
             self.server_thread[0].join()
             self.server_thread.pop()
 
         print "WebSocket closed"
         print "Connections:", len(self.connections)
-

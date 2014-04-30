@@ -220,7 +220,10 @@ class VEGASReader():
         #  for example, tcp://colossus.gb.nrao.edu:43565
         # if a device is not present the url is 'NOT FOUND!'
         if "nrao.edu" in self.device_url[bank]:
-            self.request_url[bank].connect(self.device_url[bank])
+            try:
+                self.request_url[bank].connect(self.device_url[bank])
+            except:
+                raise
             stateKey = "%s.%s:P:state" % (self.major_key[bank], self.minor_key[bank])
             self.request_url[bank].send(str(stateKey))
             response = self.request_url[bank].recv_multipart()
