@@ -3,7 +3,7 @@ from pprint import pprint
 from random import randint
 import numpy as np
 
-LIVETEST = False
+LIVETEST = True
 DEBUG = True
 DO_PARSE = True
 

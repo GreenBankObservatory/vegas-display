@@ -14,7 +14,11 @@ from read_file_data import *
 from server_config import *
 
 class VEGASReader():
-
+    def __del__(self,):
+        for b in self.banks.keys():
+            self.request_url[b].close()
+            self.context[b].close()
+                
     def __init__(self,):
 
         print 'Initializing VEGASReader'
@@ -51,6 +55,10 @@ class VEGASReader():
             
             self.request_url[b] = self.context[b].socket(zmq.REQ)
 
+            print 'device and request urls', self.device_url, self.request_url
+            if self.request_url[b] and ("nrao.edu" in self.device_url[b]):
+                self.request_url[b].connect(self.device_url[b])
+
         print 'Initialized VEGASReader', self.device_url, self.request_url
 
     def sky_frequencies(self, spectra, subbands, df):
@@ -70,11 +78,15 @@ class VEGASReader():
 
         lo1, iffile_info = info_from_files(df.project_id, df.scan_number)
 
-        backend, port, bank = 'VEGAS', 1, 'A'  # !!! replace hard-coded
+        backend, port, bank = 'VEGAS', 1, SAMPLER_TABLE['BANK_A'][0]
         sff_sb, sff_multi, sff_offset = iffile_info[(backend, port, bank)]
 
-        crval1 = [SAMPLER_TABLE[SAMPLER_TABLE['SUBBAND']==sb]['CRVAL1'][0] for sb in subbands]
-        cdelt1 = [SAMPLER_TABLE[SAMPLER_TABLE['SUBBAND']==sb]['CDELT1'][0] for sb in subbands]
+        crval1 = []
+        cdelt1 = []
+        for sb in subbands:
+            mask = SAMPLER_TABLE['SUBBAND']==sb
+            crval1.append(SAMPLER_TABLE[mask]['CRVAL1'][0])
+            cdelt1.append(SAMPLER_TABLE[mask]['CDELT1'][0])
 
         display_sky_frequencies = []
         for ii, spec in enumerate(spectra):
@@ -157,7 +169,7 @@ class VEGASReader():
                                 sf = range(start,start+NCHANS)
                                 sky_frequencies.extend(sf)
 
-                        sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
+                        #sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
 
                         # rebin each of the spectra
                         rebinned_spectra = []
@@ -220,10 +232,6 @@ class VEGASReader():
         #  for example, tcp://colossus.gb.nrao.edu:43565
         # if a device is not present the url is 'NOT FOUND!'
         if "nrao.edu" in self.device_url[bank]:
-            try:
-                self.request_url[bank].connect(self.device_url[bank])
-            except:
-                raise
             stateKey = "%s.%s:P:state" % (self.major_key[bank], self.minor_key[bank])
             self.request_url[bank].send(str(stateKey))
             response = self.request_url[bank].recv_multipart()
@@ -240,16 +248,16 @@ class VEGASReader():
 
         """
 
+        print 'getting state of bank', bank
         state = self.get_state(bank)
 
         print 'bank {0} state {1}'.format(bank, state)
 
         if "Committed" == state or "Running" == state:
-            self.request_url[bank].connect(self.device_url[bank])
-            dataKey = "%s.%s:Data" % (self.major_key[bank], self.minor_key[bank])
-            self.request_url[bank].send(str(dataKey))
-            response = self.request_url[bank].recv_multipart()
             try:
+                dataKey = "%s.%s:Data" % (self.major_key[bank], self.minor_key[bank])
+                self.request_url[bank].send(str(dataKey))
+                response = self.request_url[bank].recv_multipart()
                 (project, scan, integration, spectrum) = self.handle_response(response)
             except:
                 print 'ERROR for',bank

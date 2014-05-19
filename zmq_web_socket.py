@@ -46,6 +46,10 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
             # request data for each of the banks (A-H)
             for bank in sorted(banks.keys()):
+
+                # if the bank is not active, continue to the next one
+#                if not banks[bank]:
+#                    continue
                 
                 if DEBUG: print 'Requesting data for bank', bank
     
@@ -62,7 +66,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                     response = vegasReader.get_data_sample(bank)
                 except:
                     print 'ERROR getting data sample'
-                    self.on_close()
+                    #self.on_close()
 
                 if response[0] == 'error':
                     print 'writing zeros for',bank
@@ -135,6 +139,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
             message = ['data', str(waterfall_bank), metadata, spectra]
             self.write_message(message)
+        else:
+            self.write_message(['error'])
 
     def write_message(self, msg):
         """Send a message to the client.
@@ -177,8 +183,13 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         else:
             self.requesting_data = False
-            self.server_thread[0].join()
-            self.server_thread.pop()
+            try:
+                self.server_thread[0].join()
+            except:
+                print 'ERROR: -------------------------------------------- COULD NOT JOIN THREAD'
+
+            if self.server_thread:
+                self.server_thread.pop()
 
         print "WebSocket closed"
         print "Connections:", len(self.connections)
