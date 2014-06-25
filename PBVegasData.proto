@@ -27,36 +27,34 @@
 
 message pbVegasData
 {
-    repeated float data = 1;
-    repeated double center_freq = 2;
-    repeated int64 data_dims = 3;
-    repeated int32 cal_state = 4;
-    repeated int32 sig_ref_state = 5;
-    repeated float integration_time = 6;
+    required bytes data_blob = 1;
+    repeated double center_freq = 2 [packed = true];
+    repeated int64 data_dims = 3 [packed = true];
+    repeated int32 cal_state = 4 [packed = true];
+    repeated int32 sig_ref_state = 5 [packed = true];
+    repeated float integration_time = 6 [packed = true];
 
-    repeated int32 isigref1 = 7;
-    repeated int32 isigref2 = 8;
-    repeated int32 ical = 9;
-    repeated int32 esigref1 = 10;
-    repeated int32 esigref2 = 11;
-    repeated int32 ecal = 12;
+    repeated int32 isigref1 = 7 [packed = true];
+    repeated int32 isigref2 = 8 [packed = true];
+    repeated int32 ical = 9 [packed = true];
+    repeated int32 esigref1 = 10 [packed = true];
+    repeated int32 esigref2 = 11 [packed = true];
+    repeated int32 ecal = 12 [packed = true];
     repeated string bankA = 13;
-    repeated int32 portA = 14;
+    repeated int32 portA = 14 [packed = true];
     repeated string bankB = 15;
-    repeated int32 portB = 16;
+    repeated int32 portB = 16 [packed = true];
     repeated string datatype = 17;
-    repeated int32 subband = 18;
-    repeated double crval1 = 19;
-    repeated double cdelt1 = 20;
-    repeated double freqres = 21;
+    repeated int32 subband = 18 [packed = true];
+    repeated double crval1 = 19 [packed = true];
+    repeated double cdelt1 = 20 [packed = true];
+    repeated double freqres = 21 [packed = true];
 
     optional double time = 22;
     optional int64 time_counter = 23;
     optional int64 integration = 24;
     optional float exposure = 25;
     optional string object = 26;
-    //optional float azimuth = 25;
-    //optional float elevation = 26;
     optional float bmaj = 27;
     optional float bmin = 28;
     optional float bpa = 29;
@@ -76,5 +74,6 @@ message pbVegasData
     optional float fpga_clock = 43;
     optional int32 scan_number = 44;
     optional string project_id = 45;
-    optional float crpix1 = 46;
+    optional double dmjdfrac = 46;
+    optional double crpix1 = 47;
 }

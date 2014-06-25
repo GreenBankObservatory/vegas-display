@@ -20,6 +20,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
     data = [None]
     server_thread = []
     requesting_data = True
+    vegasReader = None
 
     def query_vegas_managers(self,):
         """Start up the server that reads spectra from the VEGAS manger
@@ -30,12 +31,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         """
 
-        print 'querying vegas managers'
-        vegasReader = VEGASReader()
-
-        # send message to client about what banks are active
-        banks = {'A':True, 'B':True, 'C':True, 'D':True, 
-                 'E':True, 'F':True, 'G':True, 'H':True}
+        if DEBUG: print 'querying vegas managers'
+        self.vegasReader = VEGASReader()
 
         # continually request data from the VEGAS manager, so long as there
         #  is at least one browser connection
@@ -45,13 +42,13 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             first_bank = True
 
             # request data for each of the banks (A-H)
-            for bank in sorted(banks.keys()):
-
-                # if the bank is not active, continue to the next one
-#                if not banks[bank]:
-#                    continue
+            for bank in self.vegasReader.banks:
                 
-                if DEBUG: print 'Requesting data for bank', bank
+                if bank not in self.vegasReader.active_banks:
+                    if DEBUG: print 'writing zeros for',bank
+                    spectrum = np.zeros((1,NCHANS)).tolist()
+
+                print 'Requesting data for bank', bank
     
                 # structure of response is:
                 #
@@ -63,19 +60,21 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                 #  integration
                 #
                 try:
-                    response = vegasReader.get_data_sample(bank)
+                    response = self.vegasReader.get_data_sample(bank)
                 except:
-                    print 'ERROR getting data sample'
+                    if DEBUG: print 'ERROR getting data sample'
+                    response = ['error']
                     #self.on_close()
 
                 if response[0] == 'error':
-                    print 'writing zeros for',bank
+                    if DEBUG: print 'writing zeros for',bank
                     spectrum = np.zeros((1,NCHANS)).tolist()
 
                 else:
                     spectrum = response[1]
-                    if type(spectrum) != type([]):
-                        print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+
+                    # if spectrum is a numpy array, convert it to a list
+                    if type(spectrum) != type([]) and hasattr(spectrum, "tolist"):
                         spectrum = spectrum.tolist()
 
                     # get metadata from the first bank
@@ -104,12 +103,12 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         This method is called when the JS creates a WebSocket object.
 
         """
-        print 'SOCKET OPENED'
+        if DEBUG: print 'SOCKET OPENED'
 
         # Start service that reads spectra from manager
-        if not self.connections:
+        if not self.server_thread:
 
-            print 'starting display server'
+            if DEBUG: print 'starting display server'
             t = threading.Thread(target=self.query_vegas_managers)
             self.server_thread.append(t)
             self.server_thread[0].start()
@@ -117,30 +116,41 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         self.connections.append(self)
         print "Connections:", len(self.connections), self.connections
 
-    def on_message(self, waterfall_bank):
+    def on_message(self, request_from_client):
         """Handle message from client.
 
         This method is called when the client responds at the end of
         the bank_config step in Display.js.
 
         """
-        if DEBUG: print 'got a message from the client!', self
 
-        # check that the VEGASReader got something from the
-        #   manager and put it in the self.data buffer
-        if self.data[0]:
-            if DEBUG: print 'we have data', self
-            metadata = self.data[0][0]
-            spectra = self.data[0][1]
+        if DEBUG:
+            print 'got a message from the client!', self
+            print 'Client is requesting', request_from_client
 
-            for idx,x in enumerate(spectra):
-                if type(x) == type(np.ones(1)):
-                    spectra[idx] = spectra[idx].tolist()
+        if request_from_client == "active_banks":
+            # send message to client about what banks are active
+            message = ['bank_config', self.vegasReader.active_banks]
 
-            message = ['data', str(waterfall_bank), metadata, spectra]
-            self.write_message(message)
         else:
-            self.write_message(['error'])
+            waterfall_bank = request_from_client
+
+            # check that the VEGASReader got something from the
+            #   manager and put it in the self.data buffer
+            if self.data[0]:
+                if DEBUG: print 'we have data', self
+                metadata = self.data[0][0]
+                spectra = self.data[0][1]
+
+                for idx,x in enumerate(spectra):
+                    if type(x) == type(np.ones(1)):
+                        spectra[idx] = spectra[idx].tolist()
+
+                message = ['data', str(waterfall_bank), metadata, spectra]
+            else:
+                message = ['error']
+
+        self.write_message(message)
 
     def write_message(self, msg):
         """Send a message to the client.
@@ -159,8 +169,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             try:
                 data = json.dumps(msg)
             except TypeError:
-                print 'FOUND A NUMPY ARRAY!'
-                print type(msg[3][0])
+                if DEBUG: print 'FOUND A NUMPY ARRAY!'
+                if DEBUG: print type(msg[3][0])
                 sys.exit()
 
         elif 'bank_config' == msg[0]:
@@ -169,7 +179,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             data = repr(msg)
 
         else:
-            print repr(msg)
+            if DEBUG: print repr(msg)
             data = repr(msg)
 
         # the following line sends the data to the JS client
@@ -183,13 +193,5 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         else:
             self.requesting_data = False
-            try:
-                self.server_thread[0].join()
-            except:
-                print 'ERROR: -------------------------------------------- COULD NOT JOIN THREAD'
 
-            if self.server_thread:
-                self.server_thread.pop()
-
-        print "WebSocket closed"
         print "Connections:", len(self.connections)

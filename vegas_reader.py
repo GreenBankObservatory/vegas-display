@@ -1,6 +1,7 @@
 import random
 import threading
 import sys
+import array
 from pprint import pprint
 
 import numpy as np
@@ -15,21 +16,20 @@ from server_config import *
 
 class VEGASReader():
     def __del__(self,):
-        for b in self.banks.keys():
+        for b in self.banks:
             self.request_url[b].close()
             self.context[b].close()
                 
     def __init__(self,):
 
-        print 'Initializing VEGASReader'
+        if DEBUG: print 'Initializing VEGASReader'
 
         self.prev_scan = None
         self.prev_integration = None
 
 
-        # send message to client about what banks are active
-        self.banks = {'A':True, 'B':True, 'C':True, 'D':True, 
-                 'E':True, 'F':True, 'G':True, 'H':True}
+        self.banks = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+        self.active_banks = []
 
         self.directory_url = get_directory_endpoints("request")
 
@@ -39,11 +39,11 @@ class VEGASReader():
         self.major_key = {}
         self.minor_key = {}
 
-        for b in self.banks.keys():
+        for b in self.banks:
 
             self.context[b] = zmq.Context()
 
-            if LIVETEST:
+            if LIVE:
                 self.major_key[b] = "VEGAS"
                 self.minor_key[b] = "Bank{0}Mgr".format(b)
             else:
@@ -55,11 +55,12 @@ class VEGASReader():
             
             self.request_url[b] = self.context[b].socket(zmq.REQ)
 
-            print 'device and request urls', self.device_url, self.request_url
+            if DEBUG: print 'device and request urls', self.device_url, self.request_url
             if self.request_url[b] and ("nrao.edu" in self.device_url[b]):
                 self.request_url[b].connect(self.device_url[b])
+                self.active_banks.append(b)
 
-        print 'Initialized VEGASReader', self.device_url, self.request_url
+        if DEBUG: print 'Initialized VEGASReader', self.device_url, self.request_url
 
     def sky_frequencies(self, spectra, subbands, df):
 
@@ -102,12 +103,12 @@ class VEGASReader():
         response_length = len(manager_response)
 
         if response_length < 1:
-            print 'NO RESPONSE'
+            if DEBUG: print 'NO RESPONSE'
             return None
 
         if response_length == 1:
             # Got an error
-            print "Error message from VEGAS Manager:", manager_response[0]
+            if DEBUG: print "Error message from VEGAS Manager:", manager_response[0]
             return None
 
         elif response_length > 1:
@@ -128,18 +129,23 @@ class VEGASReader():
                 # key is 'Data'
                 if DO_PARSE:
                     df = pbVegasData()
-                    t = threading.Thread(target=df.ParseFromString, args=(values,))
-                    t.start()
-                    t.join()
+                    df.ParseFromString(values)
+                    ff = array.array('f')  # 'f' is typecode for C float
+                    ff.fromstring(df.data_blob)
+                    #t = threading.Thread(target=ff.fromstring, args=(df.data_blob,))
+                    #t.start()
+                    #t.join()
                 else:
                     df = DF()
+                    ff = df.data
                 
                 n_sig_states = len(set(df.sig_ref_state))
                 n_cal_states = len(set(df.cal_state))
                 n_subbands = len(set(df.subband))
                 n_chans, n_samplers, n_states = df.data_dims
 
-                full_res_spectra = np.array(df.data)
+                full_res_spectra = np.array(ff)
+                #if DEBUG: print 'full_res_spectra',full_res_spectra[:10]
 
                 if DO_PARSE:
                     full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
@@ -157,41 +163,42 @@ class VEGASReader():
                         # this reduces the state dimension by 1/2
                         # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
                         arr = np.mean(full_res_spectra, axis=0)
-
-                        # get every n_skip_pols spectrum and subband
-                        less_spectra = arr[::n_skip_pols]
-                        subbands = df.subband[::n_skip_pols]
-
-                        sky_frequencies = []
-                        if DEBUG:
-                            for n in range(n_subbands):
-                                start = random.randint(1,5)*1000
-                                sf = range(start,start+NCHANS)
-                                sky_frequencies.extend(sf)
-
-                        #sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
-
-                        # rebin each of the spectra
-                        rebinned_spectra = []
-                        for xx in less_spectra:
-                            spectrum = xx
-                            if DEBUG: spectrum = spectrum * random.randint(1,10)
-                            # rebin to NCHANS length
-                            rebinned = spectrum.reshape((NCHANS, len(spectrum)/NCHANS)).mean(axis=1)
-                            rebinned_spectra.extend(rebinned.tolist())
-
-
-                        spectrum = np.array(zip(sky_frequencies, rebinned_spectra))
-                        spectrum = spectrum.reshape((n_subbands,NCHANS,2)).tolist()
-
-                        # sort each spectrum by frequency
-                        for idx,s in enumerate(spectrum):
-                            spectrum[idx] = sorted(s)
-
                     else:
-                        print 'SIG SWITCHING'
-                        # just show the first states
-                        spectrum = arr[0,::n_skip_pols,:].ravel().tolist()
+                        if DEBUG: print 'SIG SWITCHING'
+                        pass
+
+                        # get just the first spectrum
+                        arr = full_res_spectra[0]
+
+                    # get every n_skip_pols spectrum and subband
+                    less_spectra = arr[::n_skip_pols]
+                    subbands = df.subband[::n_skip_pols]
+
+                    sky_frequencies = []
+                    if LIVE:
+                        sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
+                    else:
+                        for n in range(n_subbands):
+                            start = random.randint(1,5)*1000
+                            sf = range(start,start+NCHANS)
+                            sky_frequencies.extend(sf)
+
+                    # rebin each of the spectra
+                    rebinned_spectra = []
+                    for xx in less_spectra:
+                        spectrum = xx
+                        if DEBUG: spectrum = spectrum * random.randint(1,10)
+                        # rebin to NCHANS length
+                        rebinned = spectrum.reshape((NCHANS, len(spectrum)/NCHANS)).mean(axis=1)
+                        rebinned_spectra.extend(rebinned.tolist())
+
+
+                    spectrum = np.array(zip(sky_frequencies, rebinned_spectra))
+                    spectrum = spectrum.reshape((n_subbands,NCHANS,2)).tolist()
+
+                    # sort each spectrum by frequency
+                    for idx,s in enumerate(spectrum):
+                        spectrum[idx] = sorted(s)
                         
                     # !!! will not be needed
                     # spectrum = spectrum / df.integration_time[0]
@@ -205,23 +212,20 @@ class VEGASReader():
                 # make sure we have lists
                 for idx,s in enumerate(spectrum):
                     for widx,w in enumerate(s):
-                        if type(w) != type([]):
-                            print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAARRRRRAY!!!!!!!!!!!!!!!!!!!!!!!'
+                        if type(w) != type([]) and hasattr(w, "tolist"):
                             spectrum[idx][widx] = w.tolist()
 
 
                 for idx,s in enumerate(spectrum):
-                    if type(s) != type([]):
-                        print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAARRRRRAY!!!!!!!!!!!!!!!!!!!!!!!'
+                    if type(s) != type([]) and hasattr(s, "tolist"):
                         spectrum[idx] = s.tolist()
 
                 if type(spectrum) != type([]):
-                    print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAARRRRRAY!!!!!!!!!!!!!!!!!!!!!!!'
                     spectrum = spectrum.tolist()
                     
                 response = (project, scan, integration, spectrum)
                 if type(response[3]) == type(np.zeros(1)):
-                    print 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAARRRRRAY!!!!!!!!!!!!!!!!!!!!!!!'
+                    print '',
 
                 return response
 
@@ -248,19 +252,20 @@ class VEGASReader():
 
         """
 
-        print 'getting state of bank', bank
+        if DEBUG: print 'getting state of bank', bank
         state = self.get_state(bank)
 
-        print 'bank {0} state {1}'.format(bank, state)
+        if DEBUG: print 'bank {0} state {1}'.format(bank, state)
 
-        if "Committed" == state or "Running" == state:
+        if "Running" == state or "Committed" == state:
             try:
                 dataKey = "%s.%s:Data" % (self.major_key[bank], self.minor_key[bank])
                 self.request_url[bank].send(str(dataKey))
                 response = self.request_url[bank].recv_multipart()
                 (project, scan, integration, spectrum) = self.handle_response(response)
-            except:
-                print 'ERROR for',bank
+            except e:
+                if DEBUG: print 'ERROR for',bank
+                if DEBUG: print e
                 return ['error']
 
             # if something changed, send 'ok'
