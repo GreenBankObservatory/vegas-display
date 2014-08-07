@@ -32,6 +32,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         """
 
         if DEBUG: print 'querying vegas managers'
+
         self.vegasReader = VEGASReader()
 
         # continually request data from the VEGAS manager, so long as there
@@ -48,7 +49,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                     if DEBUG: print 'writing zeros for',bank
                     spectrum = np.zeros((1,NCHANS)).tolist()
 
-                print 'Requesting data for bank', bank
+                #print 'Requesting data for bank', bank
     
                 # structure of response is:
                 #
@@ -62,7 +63,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                 try:
                     response = self.vegasReader.get_data_sample(bank)
                 except:
-                    if DEBUG: print 'ERROR getting data sample'
+                    if DEBUG: print 'ERROR getting data sample', sys.exc_info()[0]
                     response = ['error']
                     #self.on_close()
 
@@ -130,7 +131,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         if request_from_client == "active_banks":
             # send message to client about what banks are active
-            message = ['bank_config', self.vegasReader.active_banks]
+            message = ['bank_config', ['A','B','C','D','E','F','G','H']]#self.vegasReader.active_banks]
 
         else:
             waterfall_bank = request_from_client

@@ -56,7 +56,7 @@ class VEGASReader():
             self.request_url[b] = self.context[b].socket(zmq.REQ)
 
             if DEBUG: print 'device and request urls', self.device_url, self.request_url
-            if self.request_url[b] and ("nrao.edu" in self.device_url[b]):
+            if self.request_url[b] and ("//" in self.device_url[b]):
                 self.request_url[b].connect(self.device_url[b])
                 self.active_banks.append(b)
 
@@ -175,9 +175,10 @@ class VEGASReader():
                     subbands = df.subband[::n_skip_pols]
 
                     sky_frequencies = []
-                    if LIVE:
+                    try:
                         sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
-                    else:
+                    except:
+                        if DEBUG: print 'WARNING: frequency information unavailable'
                         for n in range(n_subbands):
                             start = random.randint(1,5)*1000
                             sf = range(start,start+NCHANS)
@@ -187,7 +188,14 @@ class VEGASReader():
                     rebinned_spectra = []
                     for xx in less_spectra:
                         spectrum = xx
-                        if DEBUG: spectrum = spectrum * random.randint(1,10)
+
+                        # interpolate over the center channel to remove the VEGAS spike
+                        centerchan = int(len(spectrum)/2)
+                        spectrum[centerchan] = (spectrum[(centerchan)-1] + spectrum[(centerchan)+1])/2.
+
+                        if DEBUG:
+                            spectrum = spectrum * random.randint(1,10)
+
                         # rebin to NCHANS length
                         rebinned = spectrum.reshape((NCHANS, len(spectrum)/NCHANS)).mean(axis=1)
                         rebinned_spectra.extend(rebinned.tolist())
@@ -257,15 +265,16 @@ class VEGASReader():
 
         if DEBUG: print 'bank {0} state {1}'.format(bank, state)
 
-        if "Running" == state or "Committed" == state:
+        if "Running" == state:
             try:
                 dataKey = "%s.%s:Data" % (self.major_key[bank], self.minor_key[bank])
                 self.request_url[bank].send(str(dataKey))
+                if DEBUG: print 'sent KEY:', str(dataKey)
                 response = self.request_url[bank].recv_multipart()
+                if DEBUG: print 'got a response'
                 (project, scan, integration, spectrum) = self.handle_response(response)
-            except e:
-                if DEBUG: print 'ERROR for',bank
-                if DEBUG: print e
+            except:
+                if DEBUG: print 'ERROR for',bank, sys.exc_info()[0]
                 return ['error']
 
             # if something changed, send 'ok'
