@@ -46,11 +46,9 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             for bank in self.vegasReader.banks:
                 
                 if bank not in self.vegasReader.active_banks:
-                    if DEBUG: print 'writing zeros for',bank
+                    if UPDATES_DEBUG: print 'writing zeros for',bank
                     spectrum = np.zeros((1,NCHANS)).tolist()
 
-                #print 'Requesting data for bank', bank
-    
                 # structure of response is:
                 #
                 #  result_state (e.g. 'ok' 'same' 'error)
@@ -63,12 +61,11 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                 try:
                     response = self.vegasReader.get_data_sample(bank)
                 except:
-                    if DEBUG: print 'ERROR getting data sample', sys.exc_info()[0]
+                    if UPDATES_DEBUG: print 'ERROR getting data sample', sys.exc_info()[0]
                     response = ['error']
-                    #self.on_close()
 
                 if response[0] == 'error':
-                    if DEBUG: print 'writing zeros for',bank
+                    if UPDATES_DEBUG: print 'writing zeros for',bank
                     spectrum = np.zeros((1,NCHANS)).tolist()
 
                 else:
@@ -96,7 +93,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             #  write a message back to the client
             self.data[0] = [metadata, all_banks_spectra]
 
-            if DEBUG:  print strftime("%H:%M:%S")
+            if UPDATES_DEBUG:  print strftime("%H:%M:%S")
             sleep(.300)
 
     def open(self):
@@ -125,7 +122,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         """
 
-        if DEBUG:
+        if UPDATES_DEBUG:
             print 'got a message from the client!', self
             print 'Client is requesting', request_from_client
 
@@ -180,7 +177,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             data = repr(msg)
 
         else:
-            if DEBUG: print repr(msg)
+            if UPDATES_DEBUG: print repr(msg)
             data = repr(msg)
 
         # the following line sends the data to the JS client
