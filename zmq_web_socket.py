@@ -35,57 +35,64 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         self.vegasReader = VEGASReader()
 
-        # continually request data from the VEGAS manager, so long as there
-        #  is at least one browser connection
+        # continually request data from the VEGAS managers,
+        # so long as there is at least one browser connection
         while self.requesting_data:
 
             all_banks_spectra, metadata = [], []
-            first_bank = True
+            have_metadata = False
 
             # request data for each of the banks (A-H)
             for bank in self.vegasReader.banks:
                 
                 if bank not in self.vegasReader.active_banks:
-                    if UPDATES_DEBUG: print 'writing zeros for',bank
-                    spectrum = np.zeros((1,NCHANS)).tolist()
-
-                # structure of response is:
-                #
-                #  result_state (e.g. 'ok' 'same' 'error)
-                #  spectrum
-                #  project
-                #  scan
-                #  state
-                #  integration
-                #
-                try:
-                    response = self.vegasReader.get_data_sample(bank)
-                except:
-                    if UPDATES_DEBUG: print 'ERROR getting data sample', sys.exc_info()[0]
-                    response = ['error']
-
-                if response[0] == 'error':
-                    if UPDATES_DEBUG: print 'writing zeros for',bank
+                    if UPDATES_DEBUG:
+                        print('Bank {0} is not active.  '
+                              'Sending zeros to client'.format(bank))
                     spectrum = np.zeros((1,NCHANS)).tolist()
 
                 else:
-                    spectrum = response[1]
+                    try:
+                        # collect some data for the bank
+                        response = self.vegasReader.get_data_sample(bank)
+                        # structure of response is:
+                        #
+                        #  result_state (e.g. 'ok' 'same' 'error)
+                        #  spectrum
+                        #  project
+                        #  scan
+                        #  state
+                        #  integration
+                    except:
+                        if UPDATES_DEBUG: print 'ERROR getting data sample', sys.exc_info()[0]
+                        response = ['error']
 
-                    # if spectrum is a numpy array, convert it to a list
-                    if type(spectrum) != type([]) and hasattr(spectrum, "tolist"):
-                        spectrum = spectrum.tolist()
+                    if response[0] == 'error' or response[0] == 'idle':
+                        if UPDATES_DEBUG:
+                            print '{0}: recording zeros for {1}'.format(response[0], bank)
+                        spectrum = np.zeros((1,NCHANS)).tolist()
 
-                    # get metadata from the first bank
-                    if first_bank:
-                        project, scan, state, integration = response[2:]
-                        if response[0] == 'same':
-                            update_waterfall = 0
-                        else:
+                    else:
+                        spectrum = response[1]
+
+                        # if spectrum is a numpy array, convert it to a list
+                        if type(spectrum) != type([]) and hasattr(spectrum, "tolist"):
+                            spectrum = spectrum.tolist()
+
+                        # get metadata from the first bank
+                        #  the metadata should be the same for all banks
+                        #  !!! NB: I think we can remove 'state' as it is unique
+                        #  !!! to the bank and seems to not be used
+                        if not have_metadata:
+                            project, scan, state, integration = response[2:]
+                            if response[0] == 'same':
+                                update_waterfall = 0
+                            else:
+                                update_waterfall = 1
+
                             update_waterfall = 1
-
-                        update_waterfall = 1
-                        metadata = [project, scan, state, integration, update_waterfall]
-                        first_bank = False
+                            metadata = [project, scan, state, integration, update_waterfall]
+                            have_metadata = True
 
                 all_banks_spectra.append(spectrum)
 
@@ -94,7 +101,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             self.data[0] = [metadata, all_banks_spectra]
 
             if UPDATES_DEBUG:  print strftime("%H:%M:%S")
-            sleep(.300)
+            sleep(.800)
 
     def open(self):
         """
@@ -110,9 +117,11 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             t = threading.Thread(target=self.query_vegas_managers)
             self.server_thread.append(t)
             self.server_thread[0].start()
+            # give it a second to get started before looking for data
+            sleep(1)
 
         self.connections.append(self)
-        print "Connections:", len(self.connections), self.connections
+        print "Client browser socket connections:", len(self.connections)
 
     def on_message(self, request_from_client):
         """Handle message from client.
@@ -123,20 +132,16 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         """
 
         if UPDATES_DEBUG:
-            print 'got a message from the client!', self
-            print 'Client is requesting', request_from_client
+            print 'Client is requesting \'{0}\''.format(request_from_client)
 
         if request_from_client == "active_banks":
             # send message to client about what banks are active
-            message = ['bank_config', ['A','B','C','D','E','F','G','H']]#self.vegasReader.active_banks]
+            message = ['bank_config', self.vegasReader.active_banks]
 
         else:
-            waterfall_bank = request_from_client
-
             # check that the VEGASReader got something from the
             #   manager and put it in the self.data buffer
             if self.data[0]:
-                if DEBUG: print 'we have data', self
                 metadata = self.data[0][0]
                 spectra = self.data[0][1]
 
@@ -144,7 +149,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                     if type(x) == type(np.ones(1)):
                         spectra[idx] = spectra[idx].tolist()
 
-                message = ['data', str(waterfall_bank), metadata, spectra]
+                message = ['data', metadata, spectra]
             else:
                 message = ['error']
 
@@ -159,7 +164,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         the message size and records timing information.
 
         write_message is invoked by the write_message() call in
-        get_data_sample() or socket open() on socket creation.
+        get_data_sample() [or socket open() on socket creation?].
 
         """
 
