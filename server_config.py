@@ -3,8 +3,9 @@ from pprint import pprint
 from random import randint
 import numpy as np
 
-LIVE = False
-DEBUG = False
+LIVE = True
+DEBUG = True
+UPDATES_DEBUG = True
 DO_PARSE = True
 
 PORT_NUMBER = 7777

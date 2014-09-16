@@ -17,8 +17,8 @@ from vegas_reader import VEGASReader
 class ZMQWebSocket(websocket.WebSocketHandler):
 
     connections = []
-    data = [None]
-    server_thread = []
+    data = None
+    server_thread = None
     requesting_data = True
     vegasReader = None
 
@@ -33,7 +33,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         if DEBUG: print 'querying vegas managers'
 
-        self.vegasReader = VEGASReader()
+        ZMQWebSocket.vegasReader = VEGASReader()
 
         # continually request data from the VEGAS managers,
         # so long as there is at least one browser connection
@@ -98,7 +98,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
             # by setting self.data we allow on_message to
             #  write a message back to the client
-            self.data[0] = [metadata, all_banks_spectra]
+            ZMQWebSocket.data = [metadata, all_banks_spectra]
 
             if UPDATES_DEBUG:  print strftime("%H:%M:%S")
             sleep(.800)
@@ -114,9 +114,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         if not self.server_thread:
 
             if DEBUG: print 'starting display server'
-            t = threading.Thread(target=self.query_vegas_managers)
-            self.server_thread.append(t)
-            self.server_thread[0].start()
+            ZMQWebSocket.server_thread = threading.Thread(target=self.query_vegas_managers)
+            self.server_thread.start()
             # give it a second to get started before looking for data
             sleep(1)
 
@@ -141,9 +140,9 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         else:
             # check that the VEGASReader got something from the
             #   manager and put it in the self.data buffer
-            if self.data[0]:
-                metadata = self.data[0][0]
-                spectra = self.data[0][1]
+            if self.data:
+                metadata = self.data[0]
+                spectra = self.data[1]
 
                 for idx,x in enumerate(spectra):
                     if type(x) == type(np.ones(1)):
@@ -195,6 +194,6 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             self.connections.pop()
 
         else:
-            self.requesting_data = False
+            ZMQWebSocket.requesting_data = False
 
         print "Connections:", len(self.connections)

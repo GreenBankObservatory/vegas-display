@@ -7,10 +7,11 @@ import re
 
 import numpy as np
 import zmq
+from blessings import Terminal
 
 from PBDataDescriptor_pb2 import *
 from PBVegasData_pb2 import *
-from DataStreamUtils import get_service_endpoints, get_directory_endpoints
+from DataStreamUtils import *
 
 from read_file_data import *
 from server_config import *
@@ -30,6 +31,8 @@ class VEGASReader():
     def __init__(self,):
 
         if DEBUG: print 'Initializing VEGASReader'
+
+        self.term = Terminal()
 
         self.prev_scan = None
         self.prev_integration = None
@@ -61,7 +64,7 @@ class VEGASReader():
 
         # this flag is to make sure we don't make extra requests to a VEGAS
         # bank without reading the last response first
-        self.request_pending = False
+#        self.request_pending = False
 
         # look for banks that are active
         self.find_active_banks()
@@ -136,6 +139,10 @@ class VEGASReader():
         return display_sky_frequencies
 
     def handle_response(self, manager_response):
+
+        if not manager_response:
+            return None
+            
         response_length = len(manager_response)
 
         if response_length < 1:
@@ -158,7 +165,8 @@ class VEGASReader():
                 df.ParseFromString(values)
                 if key.endswith("state"):
                     response = str(df.val_struct[0].val_string[0])
-                if DEBUG:  print key, '=', response
+                if DEBUG:
+                    print 'key = {t.bold}{t.green}{resp}{t.normal}'.format(resp=response, t=self.term)
                 return response
 
             else:
@@ -268,8 +276,7 @@ class VEGASReader():
 
                 return response
 
-    def check_response(self, socket, mykey):
-
+    def parse_key(self, mykey):
         match_obj = re.match(r'(VEGAS)\.(Bank.Mgr):.*', mykey, re.I)
         # match object is None if there wasn't a match
         if match_obj:
@@ -277,6 +284,7 @@ class VEGASReader():
             bank_match_obj = re.match(r'Bank(.)Mgr', minor, re.I)
             if bank_match_obj:
                 bank = bank_match_obj.groups()[0]
+                return (major, minor, bank)
             else:
                 print 'ERROR: can not identify bank name from key', mykey
                 return None
@@ -284,11 +292,19 @@ class VEGASReader():
             print 'ERROR: unexpected key value', mykey
             return None
 
-        socks = dict(self.poller.poll())
+    def check_response(self, socket, mykey):
+
+        key_parts = self.parse_key(mykey)
+        if not key_parts:
+            return None
+        else:
+            (major, minor, bank) = key_parts
+
+        socks = dict(self.poller.poll(100)) # timeout after 100ms
 
         if ((self.directory_socket in socks) and (socks[self.directory_socket] == zmq.POLLIN)):
             print 'WE received a NEW_INTERFACE message!!'
-            (received_key, payload) = self.directory_socket.recv_multipart()
+            (received_key, payload) = self.directory_socket.recv_multipart(zmq.NOBLOCK)
 
             if received_key == "YgorDirectory:NEW_INTERFACE":
                 # new interface announced by directory
@@ -301,50 +317,72 @@ class VEGASReader():
                 # service.  If the manager restart the 'major',
                 # 'minor' and 'interface' will match and the URL will
                 # be different, so we need to resubscribe.
-                if DEBUG:
-                    print("NEW INTERFACE: "
-                          "{0} {1} interface {2}".format(reqb.major, reqb.minor,
-                                                         reqb.interface))
+                print("\n\n\n\nNEW INTERFACE: "
+                      "{0} {1} interface {2}".format(reqb.major, reqb.minor,
+                                                     reqb.interface))
                 snapshot_index = 1 # snapshot
-                if (reqb.major, reqb.minor, reqb.interface) == (major, minor, snapshot_index):
-                   new_url == reqb.url[0]
+                print reqb.major, reqb.interface, '=?', major, snapshot_index
 
-                   if self.manager_url[bank] != new_url:
-                       restart_msg = ('Manager restarted: '
-                                      '{0}.{1}, {2}, {3}'.format(reqb.major, reqb.minor,
-                                                                 interface, new_url))
+                if (reqb.major, reqb.interface) == (major, snapshot_index):
+                    new_url = reqb.url[0]
+                    
+                    bank_match_obj = re.match(r'Bank(.)Mgr', reqb.minor, re.I)
+                    if bank_match_obj:
+                        reqb_bank = bank_match_obj.groups()[0]      
+                        print '\n\n\nBank restarted: {0}\n\n\n'.format(reqb_bank)
+                    else:
+                        print 'ERROR: Could not determine bank from minor key:', reqb.minor
+                        return None
 
-                       self.manager_url[bank] = new_url
-                       snapshot_socket = self.snapshot_socket[bank]
+                    print('\n\n\n\n'
+                          'URLS: {0} (old)\n'
+                          '      {1} (new)'.format(self.manager_url[reqb_bank], new_url))
 
-                       if new_url:
-                           print 'New snapshot url for bank {0}: {1}'.format(bank, new_url)
+                    print('\n\n\n\nManager restarted: '
+                          '{0}.{1}, {2}, {3}\n\n\n'.format(reqb.major, reqb.minor,
+                                                           reqb.interface, new_url))
 
-                           # unregister and close
-                           if snapshot_socket in self.poller.sockets:
-                               self.poller.unregister(snapshot_socket)
-                           if not snapshot_socket.closed:
-                               snapshot_socket.close()
+                    self.manager_url[reqb_bank] = new_url
+                    snapshot_socket = self.snapshot_socket[reqb_bank]
 
-                           # create socket, connect and register poller with new url
-                           snapshot_socket = open_a_socket(self.ctx, new_url)
-                           self.poller.register(snapshot_socket, zmq.POLLIN)
+                    if new_url:
+                        print 'New snapshot url for bank {0}: {1}'.format(reqb_bank, new_url)
+
+                        # unregister and close
+                        if snapshot_socket in self.poller.sockets:
+                            self.poller.unregister(snapshot_socket)
+                        if not snapshot_socket.closed:
+                            snapshot_socket.close()
+
+                        # create socket, connect and register poller with new url
+                        self.snapshot_socket[reqb_bank] = open_a_socket(self.ctx, new_url)
+                        self.poller.register(self.snapshot_socket[reqb_bank], zmq.POLLIN)
                            
             return None
 
         if ((socket in socks) and (socks[socket] == zmq.POLLIN)):
-            response = socket.recv_multipart()
+            response = socket.recv_multipart(zmq.NOBLOCK)
             if DEBUG: print 'Manager responded for: {0}'.format(mykey)
-            self.request_pending = False
+            #self.request_pending = False
             return response
         else:
-            print 'ERROR: poll() did not have expected url'
+            print 'ERROR: poll() timed out or did not have expected url'
             return None
 
-    def send_request(self, socket, key):
-        if DEBUG: print 'Requesting from manager: {0}'.format(key)
-        socket.send(key)
-        self.request_pending = True
+    def send_request(self, socket, mykey):
+        if DEBUG: print 'Requesting from manager: {0}'.format(mykey)
+        if True:#not self.request_pending:
+            try:
+                socket.send(mykey, zmq.NOBLOCK)
+                #self.request_pending = True
+            except zmq.ZMQError as err:
+                if err.errno == zmq.EAGAIN:
+                    print 'Nothing to receive.'
+                else:
+                    print 'ZMQError {0}: {1}'.format(err.errno, sys.exc_info()[0])
+                #self.request_pending = False
+        else:
+            if DEBUG: print 'Requesting pending: {0}'.format(mykey)
         
     def get_state(self, bank):
         """
@@ -354,10 +392,9 @@ class VEGASReader():
         # if a device is not present the url is 'NOT FOUND!'
         if "nrao.edu" in self.manager_url[bank]:
             stateKey = "%s.%s:P:state" % (self.major_key[bank], self.minor_key[bank])
-            self.snapshot_socket[bank].send(str(stateKey))
-            response = self.snapshot_socket[bank].recv_multipart()
-            state = self.handle_response(response)
-            return state
+            self.send_request(self.snapshot_socket[bank], stateKey)
+            response = self.check_response(self.snapshot_socket[bank], stateKey)
+            return self.handle_response(response)
         else:
             return 'Error'
 
@@ -376,8 +413,8 @@ class VEGASReader():
                 socket = self.snapshot_socket[bank]
                 dataKey = "{0}.{1}:Data".format(self.major_key[bank], self.minor_key[bank])
 
-                if not self.request_pending:
-                    self.send_request(socket, dataKey)
+#                if not self.request_pending:
+                self.send_request(socket, dataKey)
 
                 response = self.check_response(socket, dataKey)
 
