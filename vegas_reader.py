@@ -3,26 +3,36 @@ import threading
 import sys
 import array
 from pprint import pprint
+import re
 
 import numpy as np
 import zmq
+from blessings import Terminal
 
 from PBDataDescriptor_pb2 import *
 from PBVegasData_pb2 import *
-from DataStreamUtils import get_service_endpoints, get_directory_endpoints
+from DataStreamUtils import *
 
 from read_file_data import *
 from server_config import *
 
+def open_a_socket(context, url, service_type=zmq.REQ):
+    socket = context.socket(service_type) # zmq.REQ || zmq.SUB
+    socket.linger = 0 # do not wait for more data when closing
+    socket.connect(url)
+    return socket
+
 class VEGASReader():
     def __del__(self,):
         for b in self.banks:
-            self.request_url[b].close()
-            self.context[b].close()
+            self.snapshot_socket[b].close()
+        self.ctx.close()
                 
     def __init__(self,):
 
         if DEBUG: print 'Initializing VEGASReader'
+
+        self.term = Terminal()
 
         self.prev_scan = None
         self.prev_integration = None
@@ -31,36 +41,65 @@ class VEGASReader():
         self.banks = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
         self.active_banks = []
 
-        self.directory_url = get_directory_endpoints("request")
-
-        self.context = {}
-        self.request_url = {}
-        self.device_url = {}
+        self.snapshot_socket = {}
+        self.manager_url = {}
         self.major_key = {}
         self.minor_key = {}
 
-        for b in self.banks:
+        self.ctx = zmq.Context()
 
-            self.context[b] = zmq.Context()
+        # Connect to the directory service and watch it for new interface
+        # messages that can occur with restarts to any of the managers, as well
+        # as new devices registering with the directory
+        _, self.directory_request_url, directory_publisher_url = get_directory_endpoints()
+        self.directory_socket = open_a_socket(self.ctx, directory_publisher_url, zmq.SUB)
+        self.directory_socket.setsockopt(zmq.SUBSCRIBE, "YgorDirectory:NEW_INTERFACE")
+#        self.directory_socket.setsockopt(zmq.SUBSCRIBE, "YgorDirectory:SERVER_DOWN")
+#        self.directory_socket.setsockopt(zmq.SUBSCRIBE, "YgorDirectory:SERVER_UP")
+
+        # a ZMQ poller will repeatedly check all registered socket connections
+        # we use it to check both the directory and each of the VEGAS banks
+        self.poller = zmq.Poller()
+        self.poller.register(self.directory_socket, zmq.POLLIN)
+
+        # this flag is to make sure we don't make extra requests to a VEGAS
+        # bank without reading the last response first
+#        self.request_pending = False
+
+        # look for banks that are active
+        self.find_active_banks()
+
+        # print out some debug info to see what we have
+        if DEBUG:
+            print 'manager urls:'
+            pprint(self.manager_url)
+            print 'snapshot sockets:'
+            pprint(self.snapshot_socket)
+            print 'active banks:', self.active_banks
+            print 'Initialized VEGASReader'
+
+    def find_active_banks(self):
+        # this is where we collect urls and open snapshot sockets for each of
+        # the VEGAS banks.  If a bank is not listed in the directory with a
+        # valid looking URL, then it is not considered active.
+        for bank in self.banks:
 
             if LIVE:
-                self.major_key[b] = "VEGAS"
-                self.minor_key[b] = "Bank{0}Mgr".format(b)
+                self.major_key[bank] = "VEGAS"
+                self.minor_key[bank] = "Bank{0}Mgr".format(bank)
             else:
-                self.major_key[b] = "VegasTest"
-                self.minor_key[b] = self.major_key[b] + b
+                self.major_key[bank] = "VegasTest"
+                self.minor_key[bank] = self.major_key[bank] + bank
 
-            self.device_url[b] = get_service_endpoints(self.context[b], self.directory_url,
-                                                       self.major_key[b], self.minor_key[b], 1)
-            
-            self.request_url[b] = self.context[b].socket(zmq.REQ)
+            snapshot_interface = 1
+            self.manager_url[bank] = get_service_endpoints(self.ctx, self.directory_request_url,
+                                                           self.major_key[bank], self.minor_key[bank],
+                                                           snapshot_interface)
 
-            if DEBUG: print 'device and request urls', self.device_url, self.request_url
-            if self.request_url[b] and ("//" in self.device_url[b]):
-                self.request_url[b].connect(self.device_url[b])
-                self.active_banks.append(b)
-
-        if DEBUG: print 'Initialized VEGASReader', self.device_url, self.request_url
+            if "//" in self.manager_url[bank]:
+                self.snapshot_socket[bank] = open_a_socket(self.ctx, self.manager_url[bank])
+                self.poller.register(self.snapshot_socket[bank], zmq.POLLIN)
+                self.active_banks.append(bank)
 
     def sky_frequencies(self, spectra, subbands, df):
 
@@ -100,6 +139,10 @@ class VEGASReader():
         return display_sky_frequencies
 
     def handle_response(self, manager_response):
+
+        if not manager_response:
+            return None
+            
         response_length = len(manager_response)
 
         if response_length < 1:
@@ -122,7 +165,8 @@ class VEGASReader():
                 df.ParseFromString(values)
                 if key.endswith("state"):
                     response = str(df.val_struct[0].val_string[0])
-                if DEBUG:  print df.name, '=', response
+                if DEBUG:
+                    print 'key = {t.bold}{t.green}{resp}{t.normal}'.format(resp=response, t=self.term)
                 return response
 
             else:
@@ -132,9 +176,6 @@ class VEGASReader():
                     df.ParseFromString(values)
                     ff = array.array('f')  # 'f' is typecode for C float
                     ff.fromstring(df.data_blob)
-                    #t = threading.Thread(target=ff.fromstring, args=(df.data_blob,))
-                    #t.start()
-                    #t.join()
                 else:
                     df = DF()
                     ff = df.data
@@ -154,7 +195,7 @@ class VEGASReader():
                     # of each subband
                     n_skip_pols = (n_samplers/n_subbands)
 
-                    if DEBUG: print 'polarization estimate:', n_skip_pols
+                    #if DEBUG: print 'polarization estimate:', n_skip_pols
 
                     if n_sig_states == 1:
                         # assumes no SIG switching
@@ -164,7 +205,7 @@ class VEGASReader():
                         # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
                         arr = np.mean(full_res_spectra, axis=0)
                     else:
-                        if DEBUG: print 'SIG SWITCHING'
+                        #if DEBUG: print 'SIG SWITCHING'
                         pass
 
                         # get just the first spectrum
@@ -207,9 +248,7 @@ class VEGASReader():
                     # sort each spectrum by frequency
                     for idx,s in enumerate(spectrum):
                         spectrum[idx] = sorted(s)
-                        
-                    # !!! will not be needed
-                    # spectrum = spectrum / df.integration_time[0]
+
                 else:
                     spectrum = arr
     
@@ -237,18 +276,125 @@ class VEGASReader():
 
                 return response
 
+    def parse_key(self, mykey):
+        match_obj = re.match(r'(VEGAS)\.(Bank.Mgr):.*', mykey, re.I)
+        # match object is None if there wasn't a match
+        if match_obj:
+            (major, minor) = match_obj.groups()
+            bank_match_obj = re.match(r'Bank(.)Mgr', minor, re.I)
+            if bank_match_obj:
+                bank = bank_match_obj.groups()[0]
+                return (major, minor, bank)
+            else:
+                print 'ERROR: can not identify bank name from key', mykey
+                return None
+        else:
+            print 'ERROR: unexpected key value', mykey
+            return None
+
+    def check_response(self, socket, mykey):
+
+        key_parts = self.parse_key(mykey)
+        if not key_parts:
+            return None
+        else:
+            (major, minor, bank) = key_parts
+
+        socks = dict(self.poller.poll(100)) # timeout after 100ms
+
+        if ((self.directory_socket in socks) and (socks[self.directory_socket] == zmq.POLLIN)):
+            print 'WE received a NEW_INTERFACE message!!'
+            (received_key, payload) = self.directory_socket.recv_multipart(zmq.NOBLOCK)
+
+            if received_key == "YgorDirectory:NEW_INTERFACE":
+                # new interface announced by directory
+                reqb = PBRequestService()
+                reqb.ParseFromString(payload)
+
+                # if we're here it's possilbly because our device
+                # restarted, or the name server came back up, or
+                # some other service registered with the directory
+                # service.  If the manager restart the 'major',
+                # 'minor' and 'interface' will match and the URL will
+                # be different, so we need to resubscribe.
+                print("\n\n\n\nNEW INTERFACE: "
+                      "{0} {1} interface {2}".format(reqb.major, reqb.minor,
+                                                     reqb.interface))
+                snapshot_index = 1 # snapshot
+                print reqb.major, reqb.interface, '=?', major, snapshot_index
+
+                if (reqb.major, reqb.interface) == (major, snapshot_index):
+                    new_url = reqb.url[0]
+                    
+                    bank_match_obj = re.match(r'Bank(.)Mgr', reqb.minor, re.I)
+                    if bank_match_obj:
+                        reqb_bank = bank_match_obj.groups()[0]      
+                        print '\n\n\nBank restarted: {0}\n\n\n'.format(reqb_bank)
+                    else:
+                        print 'ERROR: Could not determine bank from minor key:', reqb.minor
+                        return None
+
+                    print('\n\n\n\n'
+                          'URLS: {0} (old)\n'
+                          '      {1} (new)'.format(self.manager_url[reqb_bank], new_url))
+
+                    print('\n\n\n\nManager restarted: '
+                          '{0}.{1}, {2}, {3}\n\n\n'.format(reqb.major, reqb.minor,
+                                                           reqb.interface, new_url))
+
+                    self.manager_url[reqb_bank] = new_url
+                    snapshot_socket = self.snapshot_socket[reqb_bank]
+
+                    if new_url:
+                        print 'New snapshot url for bank {0}: {1}'.format(reqb_bank, new_url)
+
+                        # unregister and close
+                        if snapshot_socket in self.poller.sockets:
+                            self.poller.unregister(snapshot_socket)
+                        if not snapshot_socket.closed:
+                            snapshot_socket.close()
+
+                        # create socket, connect and register poller with new url
+                        self.snapshot_socket[reqb_bank] = open_a_socket(self.ctx, new_url)
+                        self.poller.register(self.snapshot_socket[reqb_bank], zmq.POLLIN)
+                           
+            return None
+
+        if ((socket in socks) and (socks[socket] == zmq.POLLIN)):
+            response = socket.recv_multipart(zmq.NOBLOCK)
+            if DEBUG: print 'Manager responded for: {0}'.format(mykey)
+            #self.request_pending = False
+            return response
+        else:
+            print 'ERROR: poll() timed out or did not have expected url'
+            return None
+
+    def send_request(self, socket, mykey):
+        if DEBUG: print 'Requesting from manager: {0}'.format(mykey)
+        if True:#not self.request_pending:
+            try:
+                socket.send(mykey, zmq.NOBLOCK)
+                #self.request_pending = True
+            except zmq.ZMQError as err:
+                if err.errno == zmq.EAGAIN:
+                    print 'Nothing to receive.'
+                else:
+                    print 'ZMQError {0}: {1}'.format(err.errno, sys.exc_info()[0])
+                #self.request_pending = False
+        else:
+            if DEBUG: print 'Requesting pending: {0}'.format(mykey)
+        
     def get_state(self, bank):
         """
         """
         # a device url should be of the form tcp://machine.nrao.edu:port
         #  for example, tcp://colossus.gb.nrao.edu:43565
         # if a device is not present the url is 'NOT FOUND!'
-        if "nrao.edu" in self.device_url[bank]:
+        if "nrao.edu" in self.manager_url[bank]:
             stateKey = "%s.%s:P:state" % (self.major_key[bank], self.minor_key[bank])
-            self.request_url[bank].send(str(stateKey))
-            response = self.request_url[bank].recv_multipart()
-            state = self.handle_response(response)
-            return state
+            self.send_request(self.snapshot_socket[bank], stateKey)
+            response = self.check_response(self.snapshot_socket[bank], stateKey)
+            return self.handle_response(response)
         else:
             return 'Error'
 
@@ -260,21 +406,22 @@ class VEGASReader():
 
         """
 
-        if DEBUG: print 'getting state of bank', bank
         state = self.get_state(bank)
-
-        if DEBUG: print 'bank {0} state {1}'.format(bank, state)
 
         if "Running" == state:
             try:
-                dataKey = "%s.%s:Data" % (self.major_key[bank], self.minor_key[bank])
-                self.request_url[bank].send(str(dataKey))
-                if DEBUG: print 'sent KEY:', str(dataKey)
-                response = self.request_url[bank].recv_multipart()
-                if DEBUG: print 'got a response'
-                (project, scan, integration, spectrum) = self.handle_response(response)
+                socket = self.snapshot_socket[bank]
+                dataKey = "{0}.{1}:Data".format(self.major_key[bank], self.minor_key[bank])
+
+#                if not self.request_pending:
+                self.send_request(socket, dataKey)
+
+                response = self.check_response(socket, dataKey)
+
+                if response:
+                    (project, scan, integration, spectrum) = self.handle_response(response)
             except:
-                if DEBUG: print 'ERROR for',bank, sys.exc_info()[0]
+                if DEBUG: print 'ERROR for', bank, sys.exc_info()[0]
                 return ['error']
 
             # if something changed, send 'ok'
@@ -287,5 +434,5 @@ class VEGASReader():
             else:
                 return ['same', spectrum, project, scan, state, integration]
         else:
-            return ['error']
+            return ['idle']
 
