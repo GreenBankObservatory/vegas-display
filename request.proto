@@ -1,0 +1,24 @@
+import "google/protobuf/descriptor.proto";  // make sure this is on the path
+
+// Used to request service endpoints from the directory. Caller need
+// only provide 'major' and 'minor', and optionally 'interface'. Directory
+// service fills in the other information.
+
+message PBRequestService
+{
+    repeated string publish_url = 1;
+    repeated string snapshot_url = 2;
+    repeated string control_url = 3;
+    optional string host = 19;
+    required string major = 20;
+    required string minor = 21;
+    optional Interface interface = 22;
+    optional int32 errors = 23;
+
+    enum Interface
+    {
+	PUBLISH  = 0;
+	SNAPSHOT = 1;
+	CONTROL  = 2;
+    }
+}

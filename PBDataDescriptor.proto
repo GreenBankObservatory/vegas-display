@@ -1,0 +1,116 @@
+import "google/protobuf/descriptor.proto";  // make sure this is on the path
+import "TimeStamp.proto";                   // need this for samplers
+
+// Allow user to define a string (abbr) with enum values
+extend google.protobuf.EnumValueOptions
+{
+    optional string abbr = 50000;
+}
+
+// Container for data
+message PBDataField
+{
+    // Metadata
+    required int32  id			= 20;
+    required string name		= 21;
+    optional string description		= 22;
+    required Type   type		= 23;
+    optional int32  precision		= 24;
+    optional int32  accuracy		= 25;
+    optional Unit   unit		= 26 [default=NONE];
+    optional string fitsname		= 27; // is this necessary?
+    optional pbTimeStamp timeStamp	= 28; // for samplers
+    
+    // Containers for values
+    repeated double     val_double      = 1     [packed = true];
+    repeated float      val_float       = 2     [packed = true];
+    repeated bool       val_bool        = 3     [packed = true];
+    repeated string     val_string      = 4;
+    repeated bytes      val_bytes       = 5;
+    repeated int32      val_int32       = 6     [packed = true];
+    repeated int64      val_int64       = 7     [packed = true];
+    repeated uint32     val_uint32      = 8     [packed = true];
+    repeated uint64     val_uint64      = 9     [packed = true];
+    repeated PBDataField  val_struct   = 10;
+
+    // From the protobuf types above - enum values correspond to field number
+    enum Type
+    {
+        DOUBLE = 1;
+        FLOAT = 2;
+        BOOL = 3;
+        STRING = 4;
+        BYTES = 5;
+        INT32 = 6;
+        INT64 = 7;
+        UINT32 = 8;
+        UINT64 = 9;
+        STRUCT = 10;
+    }
+    
+    enum Unit
+    {
+        NONE = 0                [(abbr)="None"];        // Not specified
+        METERS = 1              [(abbr)="m"];           // Length
+        MICROMETERS = 2         [(abbr)="um"];
+        MILLIMETERS = 3         [(abbr)="mm"];
+        CENTIMETERS = 4         [(abbr)="cm"];
+        SQUAREMETERS = 5        [(abbr)="m^2"];         // Area
+        CUBICMETERS = 6         [(abbr)="m^3"];         // Volume
+        METERSPERSEC = 7        [(abbr)="m/s"];         // Linear velocity
+        KMPERSEC = 8            [(abbr)="km/s"];
+        METERSPERSEC2 = 9       [(abbr)="m/s^2"];       // Linear acceleration
+        KMPERSEC2 = 10          [(abbr)="km/s^2"];
+        METERSPERSEC3 = 11      [(abbr)="m/s^3"];       // Linear jerk
+        KMPERSEC3 = 12          [(abbr)="km/s^3"];
+        RADIANS = 13            [(abbr)="rad"];         // Angle units
+        DEGREES = 14            [(abbr)="deg"];
+        RADIANSPERSEC = 15      [(abbr)="rad/s"];       // Angular velocity
+        DEGREESPERSEC = 16      [(abbr)="deg/s"];
+        DEGREESPERHOUR = 17     [(abbr)="deg/hr"];
+        RADIANSPERSEC2 = 18     [(abbr)="rad/s^2"];     // Angular acceleration
+        DEGREESPERSEC2 = 19     [(abbr)="deg/s^2"];
+        DEGREESPERHOUR2 = 20    [(abbr)="deg/h^2"];
+        RADIANSPERSEC3 = 21     [(abbr)="rad/s^3"];     // Angular jerk
+        DEGREESPERSEC3 = 22     [(abbr)="deg/s^3"];
+        DEGREESPERHOUR3 = 23    [(abbr)="deg/h^3"];
+        ARCSECONDS = 24         [(abbr)="arcsec"];      // Less common angular units
+        ARCMINUTES = 25         [(abbr)="arcmin"];
+        STERADIANS = 26         [(abbr)="sr"];          // Solid angle
+        SECONDS = 27            [(abbr)="s"];           // Time
+        MILLISECONDS = 28       [(abbr)="ms"];
+        MICROSECONDS = 29       [(abbr)="us"];
+        NANOSECONDS = 30        [(abbr)="ns"];
+        PICOSECONDS = 31        [(abbr)="ps"];
+        MINUTES = 32            [(abbr)="min"];
+        HOURS = 33              [(abbr)="h"];
+        DAYS = 34               [(abbr)="d"];
+        MONTHS = 35             [(abbr)="month"];
+        YEARS = 36              [(abbr)="y"];
+        TIMESTAMP = 37          [(abbr)="timestamp"];   // Special Time unit
+        MINUTESPERMINUTE = 38   [(abbr)="min/min"];
+        MINUTESPERMINUTE2 = 39  [(abbr)="min/min^2"];
+        MINUTESPERMINUTE3 = 40  [(abbr)="min/min^3"];
+        KELVINS = 41            [(abbr)="K"];           // temperature
+        CELSIUS = 42            [(abbr)="C"];
+        GRAMS = 43              [(abbr)="g"];           // mass
+        HERTZ = 44              [(abbr)="Hz"];          // Frequency Units
+        KILOHERTZ = 45          [(abbr)="KHz"];
+        MEGAHERTZ = 46          [(abbr)="MHz"];
+        GIGAHERTZ = 47          [(abbr)="GHz"];
+        VOLTS = 48              [(abbr)="V"];           // voltage
+        AMPS = 49               [(abbr)="A"];           // amperage
+        MILLIAMPS = 50          [(abbr)="mA"];
+        WATTS = 51              [(abbr)="W"];           // power
+        MICROWATTS = 52         [(abbr)="mW"];
+        DB = 53                 [(abbr)="dB"];          // decibels
+        DBM = 54                [(abbr)="dBm"];
+        PSI = 55                [(abbr)="psi"];         // Pressure
+        PASCALS = 56            [(abbr)="Pa"];          // Pressure in Newtons/meter^2
+        KILOPASCALS = 57        [(abbr)="KPa"];
+        MILLIBARS = 58          [(abbr)="mb"];          // 1 mb == 100 Pascals
+        TORR = 59               [(abbr)="Torr"];        // Vacuum
+        PARSECSPERCM3 = 60      [(abbr)="pc/cm^3"];     // Pulsar
+        COUNT = 61              [(abbr)="count"];
+    }
+}
