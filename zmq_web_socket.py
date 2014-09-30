@@ -64,7 +64,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                         #  state
                         #  integration
                     except:
-                        if UPDATES_DEBUG: print 'ERROR getting data sample', sys.exc_info()[0]
+                        if UPDATES_DEBUG: print 'ERROR getting data sample', sys.exc_info()
                         response = ['error']
 
                     if response[0] == 'error' or response[0] == 'idle':

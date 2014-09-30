@@ -34,6 +34,7 @@
 import zmq
 from request_pb2 import *
 from DataStreamUtils import get_directory_endpoints
+from pprint import pprint
 
 def main():
     """ main method """
@@ -50,7 +51,10 @@ def main():
         if buf != "END":
             reqb = PBRequestService()
             reqb.ParseFromString(buf)
-            print reqb.major, reqb.minor, reqb.errors, reqb.url
+            print "*->", reqb.major, reqb.minor, reqb.errors, reqb.host
+            print "\tPublisher:", reqb.publish_url
+            print "\t Snapshot:", reqb.snapshot_url
+            print "\t  Control:", reqb.control_url
 
     request.close()
 

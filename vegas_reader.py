@@ -94,7 +94,7 @@ class VEGASReader():
             snapshot_interface = 1
             self.manager_url[bank] = get_service_endpoints(self.ctx, self.directory_request_url,
                                                            self.major_key[bank], self.minor_key[bank],
-                                                           snapshot_interface)
+                                                           snapshot_interface)[0]
 
             if "//" in self.manager_url[bank]:
                 self.snapshot_socket[bank] = open_a_socket(self.ctx, self.manager_url[bank])
@@ -379,7 +379,7 @@ class VEGASReader():
                 if err.errno == zmq.EAGAIN:
                     print 'Nothing to receive.'
                 else:
-                    print 'ZMQError {0}: {1}'.format(err.errno, sys.exc_info()[0])
+                    print 'ZMQError {0}: {1}'.format(err.errno, sys.exc_info())
                 #self.request_pending = False
         else:
             if DEBUG: print 'Requesting pending: {0}'.format(mykey)
@@ -421,7 +421,7 @@ class VEGASReader():
                 if response:
                     (project, scan, integration, spectrum) = self.handle_response(response)
             except:
-                if DEBUG: print 'ERROR for', bank, sys.exc_info()[0]
+                if DEBUG: print 'ERROR for', bank, sys.exc_info()
                 return ['error']
 
             # if something changed, send 'ok'
