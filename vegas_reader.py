@@ -131,7 +131,11 @@ class VEGASReader():
         display_sky_frequencies = []
         for ii, spec in enumerate(spectra):
             ifval = np.array(range(1,df.number_channels+1))
-            ifval = crval1[ii] + cdelt1[ii] * (ifval - df.crpix1)
+            # Below I use df.number_channels/2 instead of df.crpix1 because crpix1 
+            #  is currently holding the incorrect value of 0.
+            # That is a bug in the protobuf Data key sent in the stream from
+            #  the manager.
+            ifval = crval1[ii] + cdelt1[ii] * (ifval - df.number_channels/2)
             skyfreq = sff_sb * ifval + sff_multi * lo1 + sff_offset
             # only return NCHANS numbers of frequencies for each subband
             display_sky_frequencies.extend(skyfreq[::df.number_channels/NCHANS].tolist())
