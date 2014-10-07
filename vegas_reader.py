@@ -376,7 +376,7 @@ class VEGASReader():
                 if err.errno == zmq.EAGAIN:
                     logging.debug('Nothing to receive.')
                 else:
-                    logging.error('ZMQError {0}: {1}'.format(err.errno, sys.exc_info()))
+                    logging.debug('ZMQError {0}: {1}'.format(err.errno, sys.exc_info()))
                 #self.request_pending = False
         else:
             logging.debug('Requesting pending: {}'.format(mykey))
