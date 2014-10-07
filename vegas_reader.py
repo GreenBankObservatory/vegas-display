@@ -2,8 +2,9 @@ import random
 import threading
 import sys
 import array
-from pprint import pprint
+from pprint import pformat
 import re
+import logging
 
 import numpy as np
 import zmq
@@ -30,7 +31,7 @@ class VEGASReader():
                 
     def __init__(self,):
 
-        if DEBUG: print 'Initializing VEGASReader'
+        logging.debug('Initializing VEGASReader')
 
         self.term = Terminal()
 
@@ -69,14 +70,12 @@ class VEGASReader():
         # look for banks that are active
         self.find_active_banks()
 
-        # print out some debug info to see what we have
-        if DEBUG:
-            print 'manager urls:'
-            pprint(self.manager_url)
-            print 'snapshot sockets:'
-            pprint(self.snapshot_socket)
-            print 'active banks:', self.active_banks
-            print 'Initialized VEGASReader'
+        logging.info('manager urls:')
+        logging.info(pformat(self.manager_url))
+        logging.info('snapshot sockets:')
+        logging.info(pformat(self.snapshot_socket))
+        logging.info('active banks: {}'.format(self.active_banks))
+        logging.info('Initialized VEGASReader')
 
     def find_active_banks(self):
         # this is where we collect urls and open snapshot sockets for each of
@@ -150,12 +149,12 @@ class VEGASReader():
         response_length = len(manager_response)
 
         if response_length < 1:
-            if DEBUG: print 'NO RESPONSE'
+            logging.debug('NO RESPONSE')
             return None
 
         if response_length == 1:
             # Got an error
-            if DEBUG: print "Error message from VEGAS Manager:", manager_response[0]
+            logging.error("From VEGAS Manager: {}".format(manager_response[0]))
             return None
 
         elif response_length > 1:
@@ -169,8 +168,7 @@ class VEGASReader():
                 df.ParseFromString(values)
                 if key.endswith("state"):
                     response = str(df.val_struct[0].val_string[0])
-                if DEBUG:
-                    print 'key = {t.bold}{t.green}{resp}{t.normal}'.format(resp=response, t=self.term)
+                logging.debug('key = {t.bold}{t.green}{resp}{t.normal}'.format(resp=response, t=self.term))
                 return response
 
             else:
@@ -190,7 +188,7 @@ class VEGASReader():
                 n_chans, n_samplers, n_states = df.data_dims
 
                 full_res_spectra = np.array(ff)
-                #if DEBUG: print 'full_res_spectra',full_res_spectra[:10]
+                logging.debug('full_res_spectra {}'.format(full_res_spectra[:10]))
 
                 if DO_PARSE:
                     full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
@@ -199,7 +197,7 @@ class VEGASReader():
                     # of each subband
                     n_skip_pols = (n_samplers/n_subbands)
 
-                    #if DEBUG: print 'polarization estimate:', n_skip_pols
+                    logging.debug('polarization estimate: {}'.format(n_skip_pols))
 
                     if n_sig_states == 1:
                         # assumes no SIG switching
@@ -209,7 +207,7 @@ class VEGASReader():
                         # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
                         arr = np.mean(full_res_spectra, axis=0)
                     else:
-                        #if DEBUG: print 'SIG SWITCHING'
+                        logging.debug('SIG SWITCHING')
                         pass
 
                         # get just the first spectrum
@@ -223,7 +221,7 @@ class VEGASReader():
                     try:
                         sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
                     except:
-                        if DEBUG: print 'WARNING: frequency information unavailable'
+                        logging.warning('Frequency information unavailable.  Substituting with dummy freq. data.')
                         for n in range(n_subbands):
                             start = random.randint(1,5)*1000
                             sf = range(start,start+NCHANS)
@@ -237,9 +235,6 @@ class VEGASReader():
                         # interpolate over the center channel to remove the VEGAS spike
                         centerchan = int(len(spectrum)/2)
                         spectrum[centerchan] = (spectrum[(centerchan)-1] + spectrum[(centerchan)+1])/2.
-
-                        if DEBUG:
-                            spectrum = spectrum * random.randint(1,10)
 
                         # rebin to NCHANS length
                         rebinned = spectrum.reshape((NCHANS, len(spectrum)/NCHANS)).mean(axis=1)
@@ -275,8 +270,6 @@ class VEGASReader():
                     spectrum = spectrum.tolist()
                     
                 response = (project, scan, integration, spectrum)
-                if type(response[3]) == type(np.zeros(1)):
-                    print '',
 
                 return response
 
@@ -290,10 +283,10 @@ class VEGASReader():
                 bank = bank_match_obj.groups()[0]
                 return (major, minor, bank)
             else:
-                print 'ERROR: can not identify bank name from key', mykey
+                logging.error('can not identify bank name from key {}'.format(mykey))
                 return None
         else:
-            print 'ERROR: unexpected key value', mykey
+            logging.error('unexpected key value {}'.format(mykey))
             return None
 
     def check_response(self, socket, mykey):
@@ -307,7 +300,7 @@ class VEGASReader():
         socks = dict(self.poller.poll(100)) # timeout after 100ms
 
         if ((self.directory_socket in socks) and (socks[self.directory_socket] == zmq.POLLIN)):
-            print 'WE received a NEW_INTERFACE message!!'
+            logging.info('WE received a NEW_INTERFACE message!!')
             (received_key, payload) = self.directory_socket.recv_multipart(zmq.NOBLOCK)
 
             if received_key == "YgorDirectory:NEW_INTERFACE":
@@ -321,11 +314,11 @@ class VEGASReader():
                 # service.  If the manager restart the 'major',
                 # 'minor' and 'interface' will match and the URL will
                 # be different, so we need to resubscribe.
-                print("\n\n\n\nNEW INTERFACE: "
-                      "{0} {1} interface {2}".format(reqb.major, reqb.minor,
-                                                     reqb.interface))
+                logging.info("\n\n\n\nNEW INTERFACE: "
+                             "{0} {1} interface {2}".format(reqb.major, reqb.minor,
+                                                            reqb.interface))
                 snapshot_index = 1 # snapshot
-                print reqb.major, reqb.interface, '=?', major, snapshot_index
+                logging.info("{} {} =? {} {}".format(reqb.major, reqb.interface, major, snapshot_index))
 
                 if (reqb.major, reqb.interface) == (major, snapshot_index):
                     new_url = reqb.url[0]
@@ -333,24 +326,24 @@ class VEGASReader():
                     bank_match_obj = re.match(r'Bank(.)Mgr', reqb.minor, re.I)
                     if bank_match_obj:
                         reqb_bank = bank_match_obj.groups()[0]      
-                        print '\n\n\nBank restarted: {0}\n\n\n'.format(reqb_bank)
+                        logging.info('\n\n\nBank restarted: {0}\n\n\n'.format(reqb_bank))
                     else:
-                        print 'ERROR: Could not determine bank from minor key:', reqb.minor
+                        logging.info('ERROR: Could not determine bank from minor key: {}'.format(reqb.minor))
                         return None
 
-                    print('\n\n\n\n'
-                          'URLS: {0} (old)\n'
-                          '      {1} (new)'.format(self.manager_url[reqb_bank], new_url))
+                    logging.info('\n\n\n\n'
+                                 'URLS: {0} (old)\n'
+                                 '      {1} (new)'.format(self.manager_url[reqb_bank], new_url))
 
-                    print('\n\n\n\nManager restarted: '
-                          '{0}.{1}, {2}, {3}\n\n\n'.format(reqb.major, reqb.minor,
-                                                           reqb.interface, new_url))
+                    logging.info('\n\n\n\nManager restarted: '
+                                 '{0}.{1}, {2}, {3}\n\n\n'.format(reqb.major, reqb.minor,
+                                                                  reqb.interface, new_url))
 
                     self.manager_url[reqb_bank] = new_url
                     snapshot_socket = self.snapshot_socket[reqb_bank]
 
                     if new_url:
-                        print 'New snapshot url for bank {0}: {1}'.format(reqb_bank, new_url)
+                        logging.info('New snapshot url for bank {0}: {1}'.format(reqb_bank, new_url))
 
                         # unregister and close
                         if snapshot_socket in self.poller.sockets:
@@ -366,27 +359,27 @@ class VEGASReader():
 
         if ((socket in socks) and (socks[socket] == zmq.POLLIN)):
             response = socket.recv_multipart(zmq.NOBLOCK)
-            if DEBUG: print 'Manager responded for: {0}'.format(mykey)
+            logging.debug('Manager responded for: {}'.format(mykey))
             #self.request_pending = False
             return response
         else:
-            print 'ERROR: poll() timed out or did not have expected url'
+            logging.debug('ERROR: poll() timed out or did not have expected url')
             return None
 
     def send_request(self, socket, mykey):
-        if DEBUG: print 'Requesting from manager: {0}'.format(mykey)
+        logging.debug('Requesting from manager: {}'.format(mykey))
         if True:#not self.request_pending:
             try:
                 socket.send(mykey, zmq.NOBLOCK)
                 #self.request_pending = True
             except zmq.ZMQError as err:
                 if err.errno == zmq.EAGAIN:
-                    print 'Nothing to receive.'
+                    logging.debug('Nothing to receive.')
                 else:
-                    print 'ZMQError {0}: {1}'.format(err.errno, sys.exc_info())
+                    logging.error('ZMQError {0}: {1}'.format(err.errno, sys.exc_info()))
                 #self.request_pending = False
         else:
-            if DEBUG: print 'Requesting pending: {0}'.format(mykey)
+            logging.debug('Requesting pending: {}'.format(mykey))
         
     def get_state(self, bank):
         """
@@ -425,7 +418,7 @@ class VEGASReader():
                 if response:
                     (project, scan, integration, spectrum) = self.handle_response(response)
             except:
-                if DEBUG: print 'ERROR for', bank, sys.exc_info()
+                logging.debug('ERROR for {} {}'.format(bank, sys.exc_info()))
                 return ['error']
 
             # if something changed, send 'ok'

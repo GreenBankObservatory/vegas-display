@@ -1,6 +1,7 @@
 import pyfits
 import sys
 from server_config import *
+import logging
 
 # define input files
 def filenames(projid, scannum):
@@ -58,9 +59,9 @@ def backend_info(BACKEND_FILENAME):
     CRVAL1 = vegas['SAMPLER'].data['CRVAL1'][0]
     CDELT1 = vegas['SAMPLER'].data['CDELT1'][0]
 
-    print 'CRPIX1',CRPIX1
-    print 'CRVAL1',CRVAL1
-    print 'CDELT1',CDELT1
+    logging.debug('CRPIX1 {}'.format(CRPIX1))
+    logging.debug('CRVAL1 {}'.format(CRVAL1))
+    logging.debug('CDELT1 {}'.format(CDELT1))
 
     nchan = vegas['PRIMARY'].header['NCHAN']
     IF = CRVAL1 + CDELT1 * (nchan/2 - CRPIX1)
@@ -78,4 +79,4 @@ if __name__ == "__main__":
     BACKEND_FILENAME = '/lustre/gbtdata/{proj}/VEGAS/2014_03_11_09:31:34E.fits'.format(proj=project)
     
     sky = sky_freq(lo1, if_info, BACKEND_FILENAME)
-    print '{0:.2f} GHz'.format((sky/1e9))
+    logging.debug('{0:.2f} GHz'.format((sky/1e9)))
