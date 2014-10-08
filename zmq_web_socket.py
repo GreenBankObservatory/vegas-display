@@ -114,6 +114,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
             logging.info('starting display server')
             ZMQWebSocket.server_thread = threading.Thread(target=self.query_vegas_managers)
+            self.server_thread.setDaemon(True)
             self.server_thread.start()
             # give it a second to get started before looking for data
             sleep(1)
