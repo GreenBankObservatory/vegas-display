@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Activate the M&C Python environment
+# This brings in modules like numpy
+# Included modules are listed here:
+#  https://safe.nrao.edu/wiki/bin/view/GB/Software/PythonPackages
+
+source /home/gbt7/newt/McPython.bash
+
+# Activate the python virtual environment for the display
+# This adds the following modules:
+#   blessings - for enhanced terminal output
+#   tornado - web server
+
+source /home/gbt7/vegas_display/bin/activate
+
+DISPLAY_DIR=/home/sandboxes/jmasters/display_PRODUCTION/vegasrtdd-server
+
+# Launch the display
+python ${DISPLAY_DIR}/display_server.py 7777
