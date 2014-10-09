@@ -16,5 +16,15 @@ source /home/gbt7/vegas_display/bin/activate
 
 DISPLAY_DIR=/home/sandboxes/jmasters/display_PRODUCTION/vegasrtdd-server
 
+
 # Launch the display
-python ${DISPLAY_DIR}/display_server.py 7777
+python ${DISPLAY_DIR}/display_server.py 7777 &
+
+# exit the script when a SIGTERM signal is received (typically from TaskMaster)
+#  or SIGINT (from a ctrl-C)
+DISPLAY_PID="$!"
+trap "kill -15 $DISPLAY_PID" SIGTERM SIGINT
+wait
+
+
+

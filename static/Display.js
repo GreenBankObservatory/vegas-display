@@ -470,8 +470,8 @@ var realtimeDisplay = new Display();
 
 // Open the web socket to the data source, which is the tornado server that
 // that is reading from the streaming manager(s)
-var hostname = 'colossus.gb.nrao.edu'
-var port = 8888;
+var hostname = 'gbtdata'
+var port = 7777;
 realtimeDisplay.ws = new WebSocket("ws://" + hostname + ":" + port + "/websocket");
 
 realtimeDisplay.ws.onopen = function (event) {
