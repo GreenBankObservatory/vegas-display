@@ -18,7 +18,8 @@ class MainHandler(tornado.web.RequestHandler):
 def listen_for_display_clients(port):
 
     # configure the logger
-    logging.basicConfig(filename="/home/sandboxes/jmasters/display_PRODUCTION/vegasrtdd-server/vegas_display_server.log",
+    logfile="/home/sandboxes/jmasters/display_PRODUCTION/vegasrtdd-server/vegas_display_server.log"
+    logging.basicConfig(filename=logfile,
                         format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=logging.INFO)

@@ -314,11 +314,11 @@ class VEGASReader():
                 # service.  If the manager restart the 'major',
                 # 'minor' and 'interface' will match and the URL will
                 # be different, so we need to resubscribe.
-                logging.info("\n\n\n\nNEW INTERFACE: "
+                logging.debug("New Interface: "
                              "{0} {1} interface {2}".format(reqb.major, reqb.minor,
                                                             reqb.interface))
                 snapshot_index = 1 # snapshot
-                logging.info("{} {} =? {} {}".format(reqb.major, reqb.interface, major, snapshot_index))
+                logging.debug("{} {} =? {} {}".format(reqb.major, reqb.interface, major, snapshot_index))
 
                 if (reqb.major, reqb.interface) == (major, snapshot_index):
                     new_url = reqb.url[0]
@@ -326,18 +326,17 @@ class VEGASReader():
                     bank_match_obj = re.match(r'Bank(.)Mgr', reqb.minor, re.I)
                     if bank_match_obj:
                         reqb_bank = bank_match_obj.groups()[0]      
-                        logging.info('\n\n\nBank restarted: {0}\n\n\n'.format(reqb_bank))
+                        logging.debug('Bank restarted: {0}'.format(reqb_bank))
                     else:
-                        logging.info('ERROR: Could not determine bank from minor key: {}'.format(reqb.minor))
+                        logging.error('ERROR: Could not determine bank from minor key: {}'.format(reqb.minor))
                         return None
 
-                    logging.info('\n\n\n\n'
-                                 'URLS: {0} (old)\n'
+                    logging.debug('URLS: {0} (old)\n'
                                  '      {1} (new)'.format(self.manager_url[reqb_bank], new_url))
 
-                    logging.info('\n\n\n\nManager restarted: '
-                                 '{0}.{1}, {2}, {3}\n\n\n'.format(reqb.major, reqb.minor,
-                                                                  reqb.interface, new_url))
+                    logging.info('Manager restarted: '
+                                 '{0}.{1}, {2}, {3}'.format(reqb.major, reqb.minor,
+                                                            reqb.interface, new_url))
 
                     self.manager_url[reqb_bank] = new_url
                     snapshot_socket = self.snapshot_socket[reqb_bank]

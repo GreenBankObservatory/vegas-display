@@ -47,7 +47,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             for bank in self.vegasReader.banks:
                 
                 if bank not in self.vegasReader.active_banks:
-                    logging.debug('Bank {0} is not active.  '
+                    logging.debug('Bank {} is not active.  '
                                   'Sending zeros to client'.format(bank))
                     spectrum = np.zeros((1,NCHANS)).tolist()
 
@@ -140,8 +140,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             # check that the VEGASReader got something from the
             #   manager and put it in the self.data buffer
             if self.data:
-                metadata = self.data[0]
-                spectra = self.data[1]
+                metadata, spectra = self.data
 
                 for idx,x in enumerate(spectra):
                     if type(x) == type(np.ones(1)):
