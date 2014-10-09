@@ -514,7 +514,6 @@ realtimeDisplay.ws.onmessage = function (evt) {
 	var data = msg[2];
 
 	// display some metadata on screen
-
 	$('#header').html('Spec ' + me.currentBank + ', Band ' + me.currentSubband);
 	$('#metadata').html('Project id: ' + project + ', ' +
 			    'Scan: ' + scan + ', ' +
@@ -527,7 +526,7 @@ realtimeDisplay.ws.onmessage = function (evt) {
 	console.log('update waterfall:', update_waterfall);
 	console.log('length of data (number of subbands):', data[BANKNUM[me.currentBank]].length);
 
-	// set the first channel of every spectrum to null
+	// set the first and last channel of every spectrum to null
 	// this avoids displaying a common huge spike in the first channel
 	for (var bankno = 0; bankno < data.length; bankno++) {
 	    for (var sbno = 0; sbno < data[bankno].length; sbno++) {
