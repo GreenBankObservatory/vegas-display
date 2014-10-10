@@ -10,57 +10,60 @@ function Display() {
     // Set listeners and associated event handlers.
     this.initListeners = function () { // --------------------------------------- initListeners
 
-        $('#reset-crosshairs').click(function (e) {
-		me.crosshairX = 1;
-		me.crosshairY = 0;
+        $( '#reset-crosshairs' ).click( function ( e ) {
+	   var  // local declarations
+	      canvas = $( "#axis" )[0],
+	      context = canvas.getContext( "2d" );
 
-		var canvas = $("#axis")[0];
-		var context = canvas.getContext("2d");
-		me.clearCanvas("#axis");
+	    me.crosshairX = 1;
+	    me.crosshairY = 0;
 
-		// display the position with text above the plot
-		$('#crosshair-position').html("Column " + (me.crosshairX) + ", Row " + (me.crosshairY));
-		me.updateNeighboringPlots(me.crosshairX, me.crosshairY);
-	    });
+	    me.clearCanvas( "#axis" );
 
-	$('#high-level-view').click(function (e) {
-		//		window.location.href = '#spectrum-0';
-	    });
+	    // display the position with text above the plot
+	    $( '#crosshair-position' ).html( "Column " + (me.crosshairX) + ", Row " + (me.crosshairY));
+	    me.updateNeighboringPlots( me.crosshairX, me.crosshairY );
+	});
+
+	$( '#high-level-view' ).click(function (e) {
+	    //		window.location.href = '#spectrum-0';
+	});
 
         // Registering click event for the plot.
         // On click, get the position of the click and draw cross
         // hairs to highlight the row and column clicked.  Then update
         // the timeseries and spectral plots to show the selected row
         // and column (channel).
-        $('#axis').click(function (e) {
+        $( '#axis' ).click(function (e) {
+           var // local declarations
+	      canvas = $( "#axis" )[0],
+	      context = canvas.getContext( "2d" );
 
             // get click pos relative to left edge of plot
             // http://api.jquery.com/event.pageX/
-            me.crosshairX = Math.floor(e.pageX - $("#axis").offset().left);
+            me.crosshairX = Math.floor( e.pageX - $( "#axis" ).offset().left );
 
             // get click pos relative to top of plot
             // http://api.jquery.com/event.pageY/
-            me.crosshairY = Math.floor(e.pageY - $("#axis").offset().top);
+            me.crosshairY = Math.floor( e.pageY - $( "#axis" ).offset().top );
 
-            var canvas = $("#axis")[0];
-            var context = canvas.getContext("2d");
-            me.clearCanvas("#axis");
+            me.clearCanvas( "#axis" );
 
             // draw crosshairs
             context.beginPath();
-            context.moveTo(me.crosshairX - 1, 0);
-            context.lineTo(me.crosshairX - 1, me.canvasHeight);
-            context.moveTo(0, me.crosshairY - 1);
-            context.lineTo(me.canvasWidth, me.crosshairY - 1);
+            context.moveTo( me.crosshairX - 1, 0 );
+            context.lineTo( me.crosshairX - 1, me.canvasHeight );
+            context.moveTo( 0, me.crosshairY - 1 );
+            context.lineTo( me.canvasWidth, me.crosshairY - 1 );
             context.strokeStyle = 'yellow'; // make the crosshairs red
             context.stroke();
 
             // display the position with text above the plot
-            $('#crosshair-position').html("Column " + (me.crosshairX) + ", Row " + (me.crosshairY));
-            me.updateNeighboringPlots(me.crosshairX, me.crosshairY);
+            $( '#crosshair-position' ).html( "Column " + ( me.crosshairX ) + ", Row " + ( me.crosshairY ) );
+            me.updateNeighboringPlots( me.crosshairX, me.crosshairY );
 	    });
 
-        $('#bank-choice').change(function () {
+        $( '#bank-choice' ).change(function () {
             // stop requesting data
             clearTimeout(me.updateId);
 
@@ -71,29 +74,29 @@ function Display() {
             // clear the plot display
             me.resetDisplay();
 
-            me.currentBank = $('#bank-choice').find(':checked').val();
+            me.currentBank = $( '#bank-choice').find( ':checked').val();
             console.log("----------------- Changed to bank " + me.currentBank);
 
 	    // hide subband buttons
-	    $('#subband-choice > input').prop("disabled", true);
+	    $( '#subband-choice > input').prop("disabled", true);
 
             // request data every 1 second for new bank
             me.startRequestingData();
         });
 
-        $('#subband-choice').change(function () {
+        $( '#subband-choice' ).change(function () {
             // stop requesting data
-            clearTimeout(me.updateId);
+            clearTimeout( me.updateId );
 
 	    // clear neighboring plots
-            me.drawSpecUnderWaterfall(null);
-            me.drawTimeSeries(null);
+            me.drawSpecUnderWaterfall( null );
+            me.drawTimeSeries( null );
 
             // clear the plot display
             me.resetDisplay();
 
-            me.currentSubband = $('#subband-choice').find(':checked').val();
-            console.log("----------------- Changed to subband " + me.currentSubband);
+            me.currentSubband = $( '#subband-choice' ).find( ':checked' ).val();
+            console.log( "----------------- Changed to subband " + me.currentSubband );
 
             // request data every 1 second for new bank
             me.startRequestingData();
@@ -101,8 +104,8 @@ function Display() {
 
     }; // +++++++++++++++++++++++++++ end of initListeners
 
-    this.clearCanvas = function (id) { // --------------------------------------- clearCanvas
-        var canvas = $(id)[0];
+    this.clearCanvas = function ( id ) { // --------------------------------------- clearCanvas
+        var canvas = $( id )[0];
         canvas.width = canvas.width;
         canvas.height = canvas.height;
     };
@@ -112,58 +115,58 @@ function Display() {
     this.resetDisplay = function () { // --------------------------------------- resetDisplay
 
         // clear each of the two plot canvases
-        this.clearCanvas(this.primaryCanvas);
-        this.clearCanvas(this.secondaryCanvas);
+        this.clearCanvas( this.primaryCanvas );
+        this.clearCanvas( this.secondaryCanvas );
 
         // reset the canvas top positions
-        $(this.primaryCanvas).css("top", "-350px");
-        $(this.secondaryCanvas).css("top", "150px");
+        $( this.primaryCanvas ).css( "top", "-350px" );
+        $( this.secondaryCanvas ).css( "top", "150px" );
 
 	this.rowCounter = 0;
     };
 
-    this.updateNeighboringPlots = function (x, y) { // --------------------------------------- updateNeighboringPlots
+    this.updateNeighboringPlots = function ( x, y ) { // --------------------------------------- updateNeighboringPlots
 
         // Convert the (x, y) position for the mouse click to the right indices.
-        this.channel_index = Math.floor(x / this.pointWidth);
-        this.spectrum_index = Math.floor(y / this.pointHeight);
+        this.channel_index = Math.floor(  x / this.pointWidth );
+        this.spectrum_index = Math.floor( y / this.pointHeight );
 
-        console.log(" x " + x + 
-		    " pointWidth " + this.pointWidth + 
-		    " y " + y + 
-		    " pointHeight " + this.pointHeight);
-        console.log("clicked spectrum at: " + 
-		    "[row " + this.spectrum_index + "," +
-		    " channel " + this.channel_index + "]");
+        console.log( " x " + x + 
+		     " pointWidth " + this.pointWidth + 
+		     " y " + y + 
+		     " pointHeight " + this.pointHeight );
+        console.log( "clicked spectrum at: " + 
+		     "[row " + this.spectrum_index + "," +
+		     " channel " + this.channel_index + "]" );
 
         // If we clicked where there is data plot, tell the spectra plot to display that
         // row.  Otherwise, we clear the spectrum plot.
-        if (this.spectrum_index < this.waterfallSpectra.length &&
-	    this.spectrum_index >= 0) {
+        if ( this.spectrum_index < this.waterfallSpectra.length &&
+	     this.spectrum_index >= 0 ) {
 
             var spectrum = this.waterfallSpectra[this.spectrum_index];
-            this.drawSpecUnderWaterfall(spectrum);
+            this.drawSpecUnderWaterfall( spectrum );
 
         } else {
 
-            this.drawSpecUnderWaterfall(null);
+            this.drawSpecUnderWaterfall( null );
         }
 
-        if (this.channel_index < this.waterfallSpectra[0].length &&
-	    this.channel_index >= 0) {
+        if ( this.channel_index < this.waterfallSpectra[0].length &&
+	     this.channel_index >= 0 ) {
 
 	    // create a time series array, initialized to null
-            var timeSeries = new Array(this.nSpectra);
-            for (var i = 0; i < timeSeries.length; i++) { timeSeries[i] = null; }
+           var timeSeries = new Array( this.nSpectra );
+            for (var i = 0; i < timeSeries.length; i++ ) { timeSeries[i] = null; }
 
 	    // set values only for the number of spectra displayed in selected channel
-	    for (var jj = 0; jj < this.rowCounter; jj++) {
+	    for (var jj = 0; jj < this.rowCounter; jj++ ) {
                 timeSeries[jj] = this.waterfallSpectra[jj][this.channel_index];
             }
-            console.log('updating time series, length', timeSeries.length);
-            this.drawTimeSeries(timeSeries);
+            console.log( 'updating time series, length', timeSeries.length );
+            this.drawTimeSeries( timeSeries );
         } else {
-            this.drawTimeSeries(null);
+            this.drawTimeSeries( null );
         }
 
     };
@@ -199,12 +202,12 @@ function Display() {
             // clear the secondary before the swap.
             $(this.secondaryCanvas).css("top", "-350px");
             this.clearCanvas(this.secondaryCanvas);
-            var temp = this.primaryCanvas;
+           var temp = this.primaryCanvas;
             this.primaryCanvas = this.secondaryCanvas;
             this.secondaryCanvas = temp;
             this.rowCounter = 0;
         } else {
-            console.log('used ' + this.rowCounter +
+            console.log( 'used ' + this.rowCounter +
 			" of " + this.nSpectra + " available rows in plot");
         }
 
@@ -250,7 +253,7 @@ function Display() {
     this.drawSpecUnderWaterfall = function(data) { // --------------------------------------- drawSpecUnderWaterfall
         $("#waterfall-spectrum").highcharts(me.waterfallSpecOptions);
 
-	var wfspec = $('#waterfall-spectrum').highcharts();
+	var wfspec = $( '#waterfall-spectrum').highcharts();
 	wfspec.series[0].setData(data);
 	wfspec.setTitle({text: 'Spectrum'});
     };
@@ -261,7 +264,7 @@ function Display() {
 	// maybe use arguments feature of js instead of dataA, dataB, etc.
 	// and a for loop for setData to iterate over arguments
         $("#spectrum-" + number).highcharts(me.specoptions);
-	var specchart = $('#spectrum-'+number).highcharts();
+	var specchart = $( '#spectrum-'+number).highcharts();
 	specchart.series[0].setData(dataA);
 	specchart.series[1].setData(dataB);
 	specchart.series[2].setData(dataC);
@@ -274,11 +277,11 @@ function Display() {
     };
 
     this.startRequestingData = function () { // --------------------------------------- startRequestingData
-        var me = this; // convention for local use of self
+       var me = this; // convention for local use of self
         me.updateId = setInterval(function () {
-            me.ws.send('data');
+            me.ws.send( 'data');
         }, 3*1000); // 1000 milliseconds == 1 second
-	console.log('update id: ' + me.updateId); // debug
+	console.log( 'update id: ' + me.updateId); // debug
     };
 
     this.drawDisplay = function (data) {  // --------------------------------------- drawDisplay
@@ -293,10 +296,11 @@ function Display() {
         // for the waterfall.  There are two for the waterfall so
         // we can continuiously plot the data.  When the primary
         // canvas fills up, we swap it with the secondary one.
-        var canvas = $(this.primaryCanvas)[0];
-        var canvas2 = $(this.secondaryCanvas)[0];
-        var context = canvas.getContext("2d");
-        var context2 = canvas2.getContext("2d");
+       var
+	  canvas = $(this.primaryCanvas)[0];
+          canvas2 = $(this.secondaryCanvas)[0];
+          context = canvas.getContext("2d");
+          context2 = canvas2.getContext("2d");
 
         // Given the number of rows we have plotted, what should the position be?
         this.rowCounter += 1;
@@ -317,13 +321,13 @@ function Display() {
         }
 
         // Clip the bottom of the secondary canvas
-        var clipPos = Math.round(canvas2.height - (this.pointHeight * this.rowCounter));
+       var clipPos = Math.round(canvas2.height - (this.pointHeight * this.rowCounter));
         context2.clearRect(0, clipPos, this.canvasWidth, (this.pointHeight * this.rowCounter));
     };
 
     this.getFillColor = function (value) { // --------------------------------------- getFillColor
 
-        var colorIdx = Math.floor(((value - this.colormin) / (this.colormax - this.colormin)) * 255);
+       var colorIdx = Math.floor(((value - this.colormin) / (this.colormax - this.colormin)) * 255);
         return 'rgb(' + colorIdx + ',0,0)';
     };
 
@@ -336,8 +340,8 @@ function Display() {
 
     // make the bank radio button choices a jquery-ui buttonset
     $("#bank-choice").buttonset();
-    $('#bank-choice > label').first().click()
-    $('#subband-choice > input').prop("disabled", true);
+    $( '#bank-choice > label').first().click()
+    $( '#subband-choice > input').prop("disabled", true);
     $("#subband-choice").buttonset();
     this.currentBank = null;
 
@@ -455,7 +459,7 @@ function Display() {
 
 function amplitudes(ampAndSkyFreq) {  // --------------------------------------- amplitudes
     // create a 1d array of the same length as the first dim of the 2d array
-    var amps = new Array(ampAndSkyFreq.length);
+   var amps = new Array(ampAndSkyFreq.length);
     // put all the first index elements of the 2d array in the 1d array
     for (var i = 0; i < ampAndSkyFreq.length; i++) {
 	amps[i] = ampAndSkyFreq[i][1];
@@ -470,61 +474,55 @@ var realtimeDisplay = new Display();
 
 // Open the web socket to the data source, which is the tornado server that
 // that is reading from the streaming manager(s)
-var hostname = 'gbtdata'
-var port = 7777;
+var hostname = $("#hostname").html();
+var port = $("#port").html();
 realtimeDisplay.ws = new WebSocket("ws://" + hostname + ":" + port + "/websocket");
 
 realtimeDisplay.ws.onopen = function (event) {
-    realtimeDisplay.ws.send('active_banks'); // request a list of active banks
+    realtimeDisplay.ws.send( 'active_banks'); // request a list of active banks
 };
 
 // Handle data sent from the write_message server code in vdd_stream_socket.py
 var me = realtimeDisplay;
 
 realtimeDisplay.ws.onmessage = function (evt) {
-    var msg = eval(evt.data);
-    console.log(msg[0])
+   var msg = JSON.parse(evt.data);
+    console.log(msg.header)
 
-    if ('bank_config' === msg[0]) {
+    if ( 'bank_config' === msg.header) {
 	// set the radio button properties depending on what banks
 	// are available
-	var bank_arr = msg[1];
+	var bank_arr = msg.body;
 	$.each(bank_arr, function (index, bank) {
-                console.log('enabling bank', bank);
+                console.log( 'enabling bank', bank);
             });
 
 	me.currentBank = bank_arr[0];
-	$('#header').html('Spec ' + me.currentBank + ', SB ' + me.currentSubband);
+	$( '#header').html( 'Spec ' + me.currentBank + ', SB ' + me.currentSubband);
 
 	// send msg to server with default bank to display
 	// request data every 1 second
 	me.startRequestingData();
 
-    } else if ('data' === msg[0]) {
-	var BANKNUM = {'A':0, 'B':1, 'C':2, 'D':3,
-		       'E':4, 'F':5, 'G':6, 'H':7};
-
-	var metadata = msg[1];
-	var project = metadata[0];
-	var scan = metadata[1]; 
-	var state = metadata[2];
-	var integration = metadata[3]; 
-	var update_waterfall = metadata[4];
-
-	var data = msg[2];
+    } else if ( 'data' === msg.header) {
+	var 
+	  BANKNUM = {'A':0, 'B':1, 'C':2, 'D':3,
+		     'E':4, 'F':5, 'G':6, 'H':7},
+	  md = msg.body.metadata,
+	  data = msg.body.spectra;
 
 	// display some metadata on screen
-	$('#header').html('Spec ' + me.currentBank + ', Band ' + me.currentSubband);
-	$('#metadata').html('Project id: ' + project + ', ' +
-			    'Scan: ' + scan + ', ' +
-			    'Int: ' + integration);
+	$( '#header').html( 'Spec ' + me.currentBank + ', Band ' + me.currentSubband);
+	$( '#metadata').html( 'Project id: ' + md.project + ', ' +
+			    'Scan: ' + md.scan + ', ' +
+			    'Int: ' + md.integration);
 	// debug info
-	console.log('bank', me.currentBank);
-	console.log('project', project);
-	console.log('scan', scan);
-	console.log('state', state);
-	console.log('update waterfall:', update_waterfall);
-	console.log('length of data (number of subbands):', data[BANKNUM[me.currentBank]].length);
+	console.log( 'bank', me.currentBank);
+	console.log( 'project', md.project);
+	console.log( 'scan', md.scan);
+	console.log( 'state', md.state);
+	console.log( 'update waterfall:', md.update_waterfall);
+	console.log( 'length of data (number of subbands):', data[BANKNUM[me.currentBank]].length);
 
 	// set the first and last channel of every spectrum to null
 	// this avoids displaying a common huge spike in the first channel
@@ -538,19 +536,19 @@ realtimeDisplay.ws.onmessage = function (evt) {
 	    }
 	}
 	for (var sbno = 0; sbno < data[BANKNUM[me.currentBank]].length; sbno++) {
-	    var selector_string = '#subband-choice > input:eq(' + sbno + ')';
+	   var selector_string = '#subband-choice > input:eq(' + sbno + ')';
 	    $(selector_string).prop("disabled", false);
 	}
 	$("#subband-choice").buttonset("refresh");
-	$('#subband-choice > label')[me.currentSubband].click();
+	$( '#subband-choice > label')[me.currentSubband].click();
 
-	if (update_waterfall == 1)
+	if (md.update_waterfall == 1)
 	    {
 		try {
-		    var amps = amplitudes(data[BANKNUM[me.currentBank]][me.currentSubband]);
+		   var amps = amplitudes(data[BANKNUM[me.currentBank]][me.currentSubband]);
 		}
 		catch(err) {
-		    console.log('ERROR');
+		    console.log( 'ERROR');
 		    console.log(data);
 		}
 		me.pointWidth = me.canvasWidth / amps.length;
@@ -559,19 +557,20 @@ realtimeDisplay.ws.onmessage = function (evt) {
 		me.colormax = Math.log(me.getMax(amps.slice(1,-1)));
 		me.drawDisplay(amps);
 		me.updateNeighboringPlots(me.crosshairX, me.crosshairY);
-		$('#status').html('Running');
-		$('#status').css('color', 'green');
+		$( '#status').html( 'Running');
+		$( '#status').css( 'color', 'green');
 	    }
 	else
 	    {
-		$('#status').html('Waiting for data');
-		$('#status').css('color', 'orange');
+		$( '#status').html( 'Waiting for data');
+		$( '#status').css( 'color', 'orange');
 	    }
 	
 	// draw the spec plots for all banks and subbands
 	for (var banklabel in BANKNUM) {
-	    var banknum = BANKNUM[banklabel];
-	    var select_string = "#bank-choice > label:eq(" + banknum + ") span";
+	   var
+	      banknum = BANKNUM[banklabel],
+	      select_string = "#bank-choice > label:eq(" + banknum + ") span";
 	    $(select_string).css({color: "grey"});
 	    if (Boolean(data[banknum])) {
 		var bankdata = data[banknum];
@@ -589,6 +588,6 @@ realtimeDisplay.ws.onmessage = function (evt) {
 			bankdata[4], bankdata[5], bankdata[6], bankdata[7]);
 	}
     } else {
-	console.log('Not updating for message:', msg[0]);
+	console.log( 'Not updating for message:', msg.header);
     }
 };

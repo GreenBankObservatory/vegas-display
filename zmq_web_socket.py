@@ -90,7 +90,11 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                                 update_waterfall = 1
 
                             update_waterfall = 1
-                            metadata = [project, scan, state, integration, update_waterfall]
+                            metadata = {'project': project,
+                                        'scan': scan,
+                                        'state': state,
+                                        'integration': integration,
+                                        'update_waterfall': update_waterfall}
                             have_metadata = True
 
                 all_banks_spectra.append(spectrum)
@@ -134,7 +138,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         if request_from_client == "active_banks":
             # send message to client about what banks are active
-            message = ['bank_config', self.vegasReader.active_banks]
+            message = {'header': 'bank_config',
+                       'body': self.vegasReader.active_banks}
 
         else:
             # check that the VEGASReader got something from the
@@ -146,9 +151,13 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                     if type(x) == type(np.ones(1)):
                         spectra[idx] = spectra[idx].tolist()
 
-                message = ['data', metadata, spectra]
+                message = {'header': 'data',
+                           'body' : {'metadata' : metadata,
+                                     'spectra' : spectra
+                                     }
+                           }
             else:
-                message = ['error']
+                message = {'header' : 'error'}
 
         self.write_message(message)
 
@@ -165,21 +174,21 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         """
 
-        if 'data' == msg[0]:
+        if 'data' == msg['header']:
             try:
                 data = json.dumps(msg)
             except TypeError:
                 logging.error('FOUND A NUMPY ARRAY!')
-                logging.error(type(msg[3][0]))
+                logging.error(type(msg['body']['spectra'][0]))
                 sys.exit()
 
-        elif 'bank_config' == msg[0]:
+        elif 'bank_config' == msg['header']:
             logging.debug(repr(msg))
-            data = repr(msg)
+            data = json.dumps(msg)
 
         else:
             logging.debug(repr(msg))
-            data = repr(msg)
+            data = json.dumps(msg)
 
         # the following line sends the data to the JS client
         # python 3 syntax would be super().write_message(data)
