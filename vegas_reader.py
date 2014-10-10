@@ -5,6 +5,7 @@ import array
 from pprint import pformat
 import re
 import logging
+import math
 
 import numpy as np
 import zmq
@@ -228,7 +229,7 @@ class VEGASReader():
                             sky_frequencies.extend(sf)
 
                     # rebin each of the spectra
-                    rebinned_spectra = []
+                    sampled_spectra = []
                     for xx in less_spectra:
                         spectrum = xx
 
@@ -237,11 +238,17 @@ class VEGASReader():
                         spectrum[centerchan] = (spectrum[(centerchan)-1] + spectrum[(centerchan)+1])/2.
 
                         # rebin to NCHANS length
-                        rebinned = spectrum.reshape((NCHANS, len(spectrum)/NCHANS)).mean(axis=1)
-                        rebinned_spectra.extend(rebinned.tolist())
+                        logging.debug('raw spectrum length: {}'.format(len(spectrum)))
+                        
+                        # sample every N channels of the raw spectrum, where
+                        #  N = 2 ^ (log2(raw_nchans) - log2(display_nchans))
+                        N = 2 ** (math.log(len(spectrum),2) - math.log(NCHANS,2))
+                        sampled = spectrum[(N/2):len(spectrum)-(N/2)+1:N]
+                        logging.debug('sampled spectrum length: {}'.format(len(sampled)))
+                        sampled_spectra.extend(sampled.tolist())
 
 
-                    spectrum = np.array(zip(sky_frequencies, rebinned_spectra))
+                    spectrum = np.array(zip(sky_frequencies, sampled_spectra))
                     spectrum = spectrum.reshape((n_subbands,NCHANS,2)).tolist()
 
                     # sort each spectrum by frequency
