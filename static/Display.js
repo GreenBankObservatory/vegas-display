@@ -485,6 +485,7 @@ realtimeDisplay.ws.onopen = function (event) {
 // Handle data sent from the write_message server code in vdd_stream_socket.py
 var me = realtimeDisplay;
 
+try {
 realtimeDisplay.ws.onmessage = function (evt) {
    var msg = JSON.parse(evt.data);
     console.log(msg.header)
@@ -591,3 +592,7 @@ realtimeDisplay.ws.onmessage = function (evt) {
 	console.log( 'Not updating for message:', msg.header);
     }
 };
+}
+catch(err) {
+    console.log('ERROR:', err.message);
+}
