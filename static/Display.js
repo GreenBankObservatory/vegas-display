@@ -482,6 +482,12 @@ realtimeDisplay.ws.onopen = function (event) {
     realtimeDisplay.ws.send( 'active_banks'); // request a list of active banks
 };
 
+realtimeDisplay.ws.onclose = function (event) {
+    console.log( 'web socket closed');
+    $( '#status').html( 'Display server stopped.  Refresh.');
+    $( '#status').css( 'color', 'red');
+};
+
 // Handle data sent from the write_message server code in vdd_stream_socket.py
 var me = realtimeDisplay;
 
