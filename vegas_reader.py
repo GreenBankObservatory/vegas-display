@@ -384,7 +384,7 @@ class VEGASReader():
                 if err.errno == zmq.EAGAIN:
                     logging.debug('Nothing to receive.')
                 else:
-                    logging.debug('ZMQError {0}: {1}'.format(err.errno, sys.exc_info()))
+                    logging.debug('ZMQError: {}'.format(sys.exc_info()))
                 #self.request_pending = False
         else:
             logging.debug('Requesting pending: {}'.format(mykey))
@@ -416,7 +416,7 @@ class VEGASReader():
         if "Running" == state:
             try:
                 socket = self.snapshot_socket[bank]
-                dataKey = "{0}.{1}:Data".format(self.major_key[bank], self.minor_key[bank])
+                dataKey = "{}.{}:Data".format(self.major_key[bank], self.minor_key[bank])
 
 #                if not self.request_pending:
                 self.send_request(socket, dataKey)

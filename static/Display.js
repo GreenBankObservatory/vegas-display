@@ -258,21 +258,14 @@ function Display() {
 	wfspec.setTitle({text: 'Spectrum'});
     };
 
-    this.drawSpec = function(number, bank,
-			     dataA, dataB, dataC, dataD, 
-			     dataE, dataF, dataG, dataH) {
+    this.drawSpec = function(number, bank, data) {
 	// maybe use arguments feature of js instead of dataA, dataB, etc.
 	// and a for loop for setData to iterate over arguments
         $("#spectrum-" + number).highcharts(me.specoptions);
 	var specchart = $( '#spectrum-'+number).highcharts();
-	specchart.series[0].setData(dataA);
-	specchart.series[1].setData(dataB);
-	specchart.series[2].setData(dataC);
-	specchart.series[3].setData(dataD);
-	specchart.series[4].setData(dataE);
-	specchart.series[5].setData(dataF);
-	specchart.series[6].setData(dataG);
-	specchart.series[7].setData(dataH);
+	data[bank].forEach( function(subband, index, array) {
+	    specchart.series[index].setData(subband);
+	});
 	specchart.setTitle({text: 'Spectrometer '+bank});
     };
 
@@ -483,8 +476,16 @@ realtimeDisplay.ws.onopen = function (event) {
 };
 
 realtimeDisplay.ws.onclose = function (event) {
+    clearTimeout(me.updateId);
     console.log( 'web socket closed');
-    $( '#status').html( 'Display server stopped.  Refresh.');
+    $( '#status').html( 'No display connection.  Try refresh.');
+    $( '#status').css( 'color', 'red');
+};
+
+realtimeDisplay.ws.onerror = function (event) {
+    clearTimeout(me.updateId);
+    console.log( 'web socket error');
+    $( '#status').html( 'Unknown error.  Try refresh.');
     $( '#status').css( 'color', 'red');
 };
 
@@ -513,10 +514,12 @@ realtimeDisplay.ws.onmessage = function (evt) {
 
     } else if ( 'data' === msg.header) {
 	var 
-	  BANKNUM = {'A':0, 'B':1, 'C':2, 'D':3,
+	  Banknum = {'A':0, 'B':1, 'C':2, 'D':3,
 		     'E':4, 'F':5, 'G':6, 'H':7},
 	  md = msg.body.metadata,
-	  data = msg.body.spectra;
+	  spectra = msg.body.spectra;
+
+	console.log('spectra',spectra);
 
 	// display some metadata on screen
 	$( '#header').html( 'Spec ' + me.currentBank + ', Band ' + me.currentSubband);
@@ -524,39 +527,46 @@ realtimeDisplay.ws.onmessage = function (evt) {
 			    'Scan: ' + md.scan + ', ' +
 			    'Int: ' + md.integration);
 	// debug info
-	console.log( 'bank', me.currentBank);
-	console.log( 'project', md.project);
-	console.log( 'scan', md.scan);
-	console.log( 'state', md.state);
-	console.log( 'update waterfall:', md.update_waterfall);
-	console.log( 'length of data (number of subbands):', data[BANKNUM[me.currentBank]].length);
+	console.log( 'bank', me.currentBank );
+	console.log( 'project', md.project );
+	console.log( 'scan', md.scan );
+	console.log( 'state', md.state );
+	console.log( 'update waterfall:', md.update_waterfall );
+	console.log( 'length of data (number of subbands):', spectra[me.currentBank].length );
 
 	// set the first and last channel of every spectrum to null
 	// this avoids displaying a common huge spike in the first channel
-	for (var bankno = 0; bankno < data.length; bankno++) {
-	    for (var sbno = 0; sbno < data[bankno].length; sbno++) {
-		var lastChan = data[bankno][sbno].length - 1;
-		if (data[bankno][sbno][0].length > 1) {
-		    data[bankno][sbno][0][1] = null;
-		    data[bankno][sbno][lastChan][1] = null;
-		}
+ 	for (var bank in spectra) {
+	    console.log(spectra, bank, spectra[bank]);
+	    if (spectra[bank].length > 0) {
+		// for each subband on this bank
+		spectra[bank].forEach(function(subband, index, array) {
+		    var firstChan = 0;
+		    var lastChan = subband.length - 1;
+		    var amplitude = 1; // freq. element is 0 (freq, amplitude)
+		    subband[firstChan][amplitude] = null;
+		    subband[lastChan][amplitude] = null;
+		});
 	    }
 	}
-	for (var sbno = 0; sbno < data[BANKNUM[me.currentBank]].length; sbno++) {
-	   var selector_string = '#subband-choice > input:eq(' + sbno + ')';
+        
+	// for each subband of the current bank
+	spectra[me.currentBank].forEach(function(subband, index, array) {
+	   var selector_string = '#subband-choice > input:eq(' + index + ')';
 	    $(selector_string).prop("disabled", false);
-	}
+	});
+
 	$("#subband-choice").buttonset("refresh");
 	$( '#subband-choice > label')[me.currentSubband].click();
 
 	if (md.update_waterfall == 1)
 	    {
 		try {
-		   var amps = amplitudes(data[BANKNUM[me.currentBank]][me.currentSubband]);
+		   var amps = amplitudes(spectra[me.currentBank][me.currentSubband]);
 		}
 		catch(err) {
 		    console.log( 'ERROR');
-		    console.log(data);
+		    console.log(spectra);
 		}
 		me.pointWidth = me.canvasWidth / amps.length;
 		me.addData(amps);
@@ -574,25 +584,17 @@ realtimeDisplay.ws.onmessage = function (evt) {
 	    }
 	
 	// draw the spec plots for all banks and subbands
-	for (var banklabel in BANKNUM) {
-	   var
-	      banknum = BANKNUM[banklabel],
-	      select_string = "#bank-choice > label:eq(" + banknum + ") span";
-	    $(select_string).css({color: "grey"});
-	    if (Boolean(data[banknum])) {
-		var bankdata = data[banknum];
-		if ((data[banknum][0][100]) != 0) {
-		    $(select_string).css({color: "green"});
-		}
+	for (var bank in Banknum) {
+	    var banknum = Banknum[bank];
+	    var select_string = "#bank-choice > label:eq(" + banknum + ") span";
+	    var bankdata = spectra[bank];
+
+	    if ( bankdata.length > 0 ) {
+		$(select_string).css({color: "green"});
 	    } else {
-		for (var ii=0; ii < 512; ii++) {
-		    data[banknum] = [0,0];
-		}
+		$(select_string).css({color: "grey"});		
 	    }
-	    me.drawSpec((banknum).toString(), banklabel,
-			// 8 subbands
-			bankdata[0], bankdata[1], bankdata[2], bankdata[3],
-			bankdata[4], bankdata[5], bankdata[6], bankdata[7]);
+	    me.drawSpec((banknum).toString(), bank, spectra);
 	}
     } else {
 	console.log( 'Not updating for message:', msg.header);

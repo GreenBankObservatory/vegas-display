@@ -40,7 +40,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         # so long as there is at least one browser connection
         while self.requesting_data:
 
-            all_banks_spectra, metadata = [], []
+            all_banks_spectra, metadata = {}, []
             have_metadata = False
 
             # request data for each of the banks (A-H)
@@ -48,8 +48,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                 
                 if bank not in self.vegasReader.active_banks:
                     logging.debug('Bank {} is not active.  '
-                                  'Sending zeros to client'.format(bank))
-                    spectrum = np.zeros((1,NCHANS)).tolist()
+                                  'Sending empty list to client'.format(bank))
+                    spectrum = []
 
                 else:
                     try:
@@ -68,8 +68,8 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                         response = ['error']
 
                     if response[0] == 'error' or response[0] == 'idle':
-                        logging.debug('{0}: recording zeros for {1}'.format(response[0], bank))
-                        spectrum = np.zeros((1,NCHANS)).tolist()
+                        logging.debug('{0}: recording empty list for {1}'.format(response[0], bank))
+                        spectrum = []
 
                     else:
                         spectrum = response[1]
@@ -97,7 +97,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                                         'update_waterfall': update_waterfall}
                             have_metadata = True
 
-                all_banks_spectra.append(spectrum)
+                all_banks_spectra[bank] = spectrum
 
             # by setting self.data we allow on_message to
             #  write a message back to the client
@@ -146,11 +146,6 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             #   manager and put it in the self.data buffer
             if self.data:
                 metadata, spectra = self.data
-
-                for idx,x in enumerate(spectra):
-                    if type(x) == type(np.ones(1)):
-                        spectra[idx] = spectra[idx].tolist()
-
                 message = {'header': 'data',
                            'body' : {'metadata' : metadata,
                                      'spectra' : spectra
@@ -178,7 +173,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
             try:
                 data = json.dumps(msg)
             except TypeError:
-                logging.error('FOUND A NUMPY ARRAY!')
+                logging.error('TypeError.  Numpy array?')
                 logging.error(type(msg['body']['spectra'][0]))
                 sys.exit()
 
