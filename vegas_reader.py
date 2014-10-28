@@ -1,6 +1,7 @@
 import random
 import threading
 import sys
+import traceback # for debugging
 import array
 from pprint import pformat
 import re
@@ -66,7 +67,7 @@ class VEGASReader():
 
         # this flag is to make sure we don't make extra requests to a VEGAS
         # bank without reading the last response first
-#        self.request_pending = False
+        self.request_pending = False
 
         # look for banks that are active
         self.find_active_banks()
@@ -84,12 +85,8 @@ class VEGASReader():
         # valid looking URL, then it is not considered active.
         for bank in self.banks:
 
-            if LIVE:
-                self.major_key[bank] = "VEGAS"
-                self.minor_key[bank] = "Bank{0}Mgr".format(bank)
-            else:
-                self.major_key[bank] = "VegasTest"
-                self.minor_key[bank] = self.major_key[bank] + bank
+            self.major_key[bank] = "VEGAS"
+            self.minor_key[bank] = "Bank{0}Mgr".format(bank)
 
             snapshot_interface = 1
             self.manager_url[bank] = get_service_endpoints(self.ctx, self.directory_request_url,
@@ -174,14 +171,10 @@ class VEGASReader():
 
             else:
                 # key is 'Data'
-                if DO_PARSE:
-                    df = pbVegasData()
-                    df.ParseFromString(values)
-                    ff = array.array('f')  # 'f' is typecode for C float
-                    ff.fromstring(df.data_blob)
-                else:
-                    df = DF()
-                    ff = df.data
+                df = pbVegasData()
+                df.ParseFromString(values)
+                ff = array.array('f')  # 'f' is typecode for C float
+                ff.fromstring(df.data_blob)
                 
                 n_sig_states = len(set(df.sig_ref_state))
                 n_cal_states = len(set(df.cal_state))
@@ -191,73 +184,69 @@ class VEGASReader():
                 full_res_spectra = np.array(ff)
                 logging.debug('full_res_spectra {}'.format(full_res_spectra[:10]))
 
-                if DO_PARSE:
-                    full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
+                full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
 
-                    # estimate the number of polarizations used to grab the first
-                    # of each subband
-                    n_skip_pols = (n_samplers/n_subbands)
+                # estimate the number of polarizations used to grab the first
+                # of each subband
+                n_skip_pols = (n_samplers/n_subbands)
 
-                    logging.debug('polarization estimate: {}'.format(n_skip_pols))
+                logging.debug('polarization estimate: {}'.format(n_skip_pols))
 
-                    if n_sig_states == 1:
-                        # assumes no SIG switching
+                if n_sig_states == 1:
+                    # assumes no SIG switching
 
-                        # average the cal-on/off pairs
-                        # this reduces the state dimension by 1/2
-                        # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
-                        arr = np.mean(full_res_spectra, axis=0)
-                    else:
-                        logging.debug('SIG SWITCHING')
-                        pass
-
-                        # get just the first spectrum
-                        arr = full_res_spectra[0]
-
-                    # get every n_skip_pols spectrum and subband
-                    less_spectra = arr[::n_skip_pols]
-                    subbands = df.subband[::n_skip_pols]
-
-                    sky_frequencies = []
-                    try:
-                        sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
-                    except:
-                        logging.warning('Frequency information unavailable.  Substituting with dummy freq. data.')
-                        for n in range(n_subbands):
-                            start = random.randint(1,5)*1000
-                            sf = range(start,start+NCHANS)
-                            sky_frequencies.extend(sf)
-
-                    # rebin each of the spectra
-                    sampled_spectra = []
-                    for xx in less_spectra:
-                        spectrum = xx
-
-                        # interpolate over the center channel to remove the VEGAS spike
-                        centerchan = int(len(spectrum)/2)
-                        spectrum[centerchan] = (spectrum[(centerchan)-1] + spectrum[(centerchan)+1])/2.
-
-                        # rebin to NCHANS length
-                        logging.debug('raw spectrum length: {}'.format(len(spectrum)))
-                        
-                        # sample every N channels of the raw spectrum, where
-                        #  N = 2 ^ (log2(raw_nchans) - log2(display_nchans))
-                        N = 2 ** (math.log(len(spectrum),2) - math.log(NCHANS,2))
-                        sampled = spectrum[(N/2):len(spectrum)-(N/2)+1:N]
-                        logging.debug('sampled spectrum length: {}'.format(len(sampled)))
-                        sampled_spectra.extend(sampled.tolist())
-
-
-                    spectrum = np.array(zip(sky_frequencies, sampled_spectra))
-                    spectrum = spectrum.reshape((n_subbands,NCHANS,2)).tolist()
-
-                    # sort each spectrum by frequency
-                    for idx,s in enumerate(spectrum):
-                        spectrum[idx] = sorted(s)
-
+                    # average the cal-on/off pairs
+                    # this reduces the state dimension by 1/2
+                    # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
+                    arr = np.mean(full_res_spectra, axis=0)
                 else:
-                    spectrum = arr
-    
+                    logging.debug('SIG SWITCHING')
+                    pass
+
+                    # get just the first spectrum
+                    arr = full_res_spectra[0]
+
+                # get every n_skip_pols spectrum and subband
+                less_spectra = arr[::n_skip_pols]
+                subbands = df.subband[::n_skip_pols]
+
+                sky_frequencies = []
+                try:
+                    sky_frequencies = self.sky_frequencies(less_spectra, subbands, df)
+                except:
+                    logging.warning('Frequency information unavailable.  Substituting with dummy freq. data.')
+                    for n in range(n_subbands):
+                        start = random.randint(1,5)*1000
+                        sf = range(start,start+NCHANS)
+                        sky_frequencies.extend(sf)
+
+                # rebin each of the spectra
+                sampled_spectra = []
+                for xx in less_spectra:
+                    spectrum = xx
+
+                    # interpolate over the center channel to remove the VEGAS spike
+                    centerchan = int(len(spectrum)/2)
+                    spectrum[centerchan] = (spectrum[(centerchan)-1] + spectrum[(centerchan)+1])/2.
+
+                    # rebin to NCHANS length
+                    logging.debug('raw spectrum length: {}'.format(len(spectrum)))
+
+                    # sample every N channels of the raw spectrum, where
+                    #  N = 2 ^ (log2(raw_nchans) - log2(display_nchans))
+                    N = 2 ** (math.log(len(spectrum),2) - math.log(NCHANS,2))
+                    sampled = spectrum[(N/2):len(spectrum)-(N/2)+1:N]
+                    logging.debug('sampled spectrum length: {}'.format(len(sampled)))
+                    sampled_spectra.extend(sampled.tolist())
+
+
+                spectrum = np.array(zip(sky_frequencies, sampled_spectra))
+                spectrum = spectrum.reshape((n_subbands,NCHANS,2)).tolist()
+
+                # sort each spectrum by frequency
+                for idx,s in enumerate(spectrum):
+                    spectrum[idx] = sorted(s)
+
                 project = str(df.project_id)
                 scan = int(df.scan_number)
                 integration = int(df.integration)
@@ -368,7 +357,7 @@ class VEGASReader():
         if ((socket in socks) and (socks[socket] == zmq.POLLIN)):
             response = socket.recv_multipart(zmq.NOBLOCK)
             logging.debug('Manager responded for: {}'.format(mykey))
-            #self.request_pending = False
+            self.request_pending = False
             return response
         else:
             logging.debug('ERROR: poll() timed out or did not have expected url')
@@ -376,16 +365,16 @@ class VEGASReader():
 
     def send_request(self, socket, mykey):
         logging.debug('Requesting from manager: {}'.format(mykey))
-        if True:#not self.request_pending:
+        if not self.request_pending:
             try:
                 socket.send(mykey, zmq.NOBLOCK)
-                #self.request_pending = True
+                self.request_pending = True
             except zmq.ZMQError as err:
                 if err.errno == zmq.EAGAIN:
                     logging.debug('Nothing to receive.')
                 else:
-                    logging.debug('ZMQError: {}'.format(sys.exc_info()))
-                #self.request_pending = False
+                    traceback.print_exc();
+                self.request_pending = False
         else:
             logging.debug('Requesting pending: {}'.format(mykey))
         
@@ -418,26 +407,29 @@ class VEGASReader():
                 socket = self.snapshot_socket[bank]
                 dataKey = "{}.{}:Data".format(self.major_key[bank], self.minor_key[bank])
 
-#                if not self.request_pending:
-                self.send_request(socket, dataKey)
+                if not self.request_pending:
+                    self.send_request(socket, dataKey)
 
                 response = self.check_response(socket, dataKey)
 
                 if response:
                     (project, scan, integration, spectrum) = self.handle_response(response)
+
+                    # if something changed, send 'ok'
+                    if scan != self.prev_scan or integration != self.prev_integration:
+                        self.prev_scan = scan
+                        self.prev_integration = integration
+                        return ['ok', spectrum, project, scan, state, integration]
+
+                    # if nothing changed, send 'same'
+                    else:
+                        return ['same', spectrum, project, scan, state, integration]
+                else:
+                    return ['idle']
+                    
             except:
-                logging.debug('ERROR for {} {}'.format(bank, sys.exc_info()))
                 return ['error']
 
-            # if something changed, send 'ok'
-            if scan != self.prev_scan or integration != self.prev_integration:
-                self.prev_scan = scan
-                self.prev_integration = integration
-                return ['ok', spectrum, project, scan, state, integration]
-
-            # if nothing changed, send 'same'
-            else:
-                return ['same', spectrum, project, scan, state, integration]
         else:
             return ['idle']
 
