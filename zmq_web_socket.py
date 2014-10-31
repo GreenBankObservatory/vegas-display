@@ -8,7 +8,6 @@ from zmq.eventloop import zmqstream
 from time import strftime, sleep
 import threading
 import numpy as np
-import time
 import sys
 import json
 import logging
@@ -35,6 +34,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         logging.debug('querying vegas managers')
 
         ZMQWebSocket.vegasReader = VEGASReader()
+        logging.debug('type of vegasReader:', type(ZMQWebSocket.vegasReader))
 
         # continually request data from the VEGAS managers,
         # so long as there is at least one browser connection

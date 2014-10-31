@@ -57,6 +57,12 @@
     left: 255;
     top: 15;
 }
+#timestamp  {
+    position: absolute;
+    left: 580;
+    top: 15;
+    font-size: 14;
+}
 #reset-crosshairs  {
     position: absolute;
     left: 580;

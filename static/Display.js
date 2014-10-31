@@ -34,24 +34,32 @@ var globalChartOptions = {
         }
     }
 };
+Highcharts.setOptions(globalChartOptions);  // set global highcharts options
 
-var waterfallOptions =  {
+var waterfallSpecOptions =  {
     legend: { enabled: false },
-    series: [{
-            name: 'amplitude',
-            linewidth: 1
-        }],
+    series: [ {name: 'amplitude' }],
     yAxis: {
         title: { text: null },
         labels: {
             formatter: function () {
                 return this.value.toPrecision(2);
             }
+        },
+        type : 'logarithmic'
+    },
+    xAxis: {
+        title: { text: "GHz" },
+        labels: {
+            formatter: function () {
+                return this.value/1e9;
+            }
         }
     }
 };
+$( "#waterfall-spectrum" ).highcharts( waterfallSpecOptions );
 
-var specoptions =  {
+var bankSpecOptions =  {
     legend: { title: 'Subband', layout: 'vertical', verticalAlign: 'top', align: 'right' },
     series: [{name: '0'}, {name: '1'}, {name: '2'}, {name: '3'},
              {name: '4'}, {name: '5'}, {name: '6'}, {name: '7'}],
@@ -87,20 +95,19 @@ function getMax(data) {
     return Math.max.apply(null, data);
 }
 
-function drawSpecUnderWaterfall( data ) { //-------- drawSpecUnderWaterfall
+function drawSpecUnderWaterfall( data ) {
     var wfspec = $( '#waterfall-spectrum' ).highcharts();
-    wfspec.series[0].setData( data, animation=false );
-    wfspec.setTitle( { text: 'Spectrum' } );
+    wfspec.series[0].setData( data );
+    wfspec.setTitle( {text: 'Spectrum'} );
     wfspec.redraw();
 }
 
-function drawTimeSeries( data ) { // ---------------- drawTimeSeries
-    $("#timeseries").highcharts( {
+function drawTimeSeries( data ) {
+    $("#timeseries").highcharts({
         legend: { enabled: false },
         title: { text: 'Time Series' },
-        series: [ { name: 'amplitude',
-                    data: data
-                  }],
+        series: [ {name: 'amplitude',
+                   data: data}],
         yAxis: {
             title: { text: null },
             labels: {
@@ -109,16 +116,16 @@ function drawTimeSeries( data ) { // ---------------- drawTimeSeries
                 }
             }
         }
-    } );
+    });
 }
 
-function clearCanvas( id ) { // --------------------------------------- clearCanvas
-        var canvas = $( id )[0];
-        canvas.width = canvas.width;
-        canvas.height = canvas.height;
+function clearCanvas( id ) {
+    var canvas = $( id )[0];
+    canvas.width = canvas.width;
+    canvas.height = canvas.height;
 }
 
-function getFillColor(value, colormin, colormax) { // --------------------------------------- getFillColor
+function getFillColor(value, colormin, colormax) {
     var colorIdx = Math.floor(((value - colormin) / (colormax - colormin)) * 255);
     return 'rgb(' + colorIdx + ',0,0)';
 }
@@ -129,7 +136,12 @@ function amplitudes( ampAndSkyFreq ) {
     var amps = [];
     // for each pair
     $.each(ampAndSkyFreq, function(idx, pair) {
-        amps.push(pair[1]);
+        if (null === pair) {
+            amps.push(null);
+        } else {
+            amps.push(pair[1]);
+        }
+
     });
     return amps;
 }
@@ -153,9 +165,8 @@ function startRequestingData(display) { // -------------------------------------
     console.log( 'update id: ' + display.updateId); // debug
 }
 
-function drawSpec(number, bank, data) {
+function drawLowerSpec(number, bank, data) {
     // maybe use arguments feature of js instead of dataA, dataB, etc.
-    $("#spectrum-" + number).highcharts( specoptions );
     var specChart = $("#spectrum-" + number).highcharts();
 
     $.each(data[bank], function(index, subband) {
@@ -168,20 +179,19 @@ function drawSpec(number, bank, data) {
 
 function updateNeighboringPlots( display, x, y ) {
     // Convert the (x, y) position for the mouse click to the (column, row)
-    display.column = Math.floor( x / display.pointWidth  );
-    display.row    = Math.floor( y / display.pointHeight );
-
-    console.log( "clicked spectrum at: [row " + display.row + ", channel " + display.column + "]" );
+    var column   = Math.floor( x / display.pointWidth  );
+    var row      = Math.floor( y / display.pointHeight );
+    console.log('row ' + row + ' column ' + column); 
     // If we clicked where there is data plot, tell the spectra plot
     // to display that data.  Otherwise, we clear the plot.
-    if ( (display.row >= 0) && (display.row < display.waterfallSpectra.length) ) {
-        drawSpecUnderWaterfall( display.waterfallSpectra[ display.row ] );
+    if ( (row >= 0) && (row < display.waterfallSpectra.length) ) {
+        drawSpecUnderWaterfall( display.waterfallSpectra[row] );
     } else {
         drawSpecUnderWaterfall( null );
     }
 
     // is the column between 0 and (e.g.) 512?
-    if ( (display.column >= 0) && (display.column < display.waterfallSpectra[0].length) ) {
+    if ( (column >= 0) && (column < display.waterfallSpectra[0].length) ) {
 
         // create a time series array, initialized to null we want it
         // to be the size of a full column so null values near the
@@ -190,12 +200,15 @@ function updateNeighboringPlots( display, x, y ) {
         $.each(timeSeries, function(idx) {timeSeries[idx] = null;});
 
         // set values only for the number of spectra displayed in selected channel
-        for (var jj = 0; jj < display.rowCounter; jj++ ) {
-            timeSeries[ jj ] = display.waterfallSpectra[ jj ][ display.column ];
+        for (var jj = 0; jj < display.waterfallSpectra.length; jj++ ) {
+            if (null !== display.waterfallSpectra[ jj ]) {
+                timeSeries[jj] = display.waterfallSpectra[ jj ][ column ];
+            }
         }
 
         console.log( 'updating time series, length', timeSeries.length );
-        drawTimeSeries( timeSeries );
+        var tsAmps = amplitudes( timeSeries );
+        drawTimeSeries( tsAmps );
     } else {
         drawTimeSeries( null );
     }
@@ -207,11 +220,13 @@ function Display() {
     this.canvasWidth = $("#axis").width(); // canvas width, in pixels
     this.canvasHeight = $("#axis").height(); // canvas height, in pixels
     this.waterfallBank = null;
-    this.waterfallSpectra = new Array(this.nSpectra);
+    this.waterfallSpectra = new Array( this.nSpectra );
+    for (var ii = 0; ii < this.waterfallSpectra.length; ii++) {
+        this.waterfallSpectra[ii] = null;
+    }
     this.pointHeight = this.canvasHeight / this.nSpectra; // datapoint height
+    this.pointWidth = undefined; // defined later
     this.rowCounter = 0; // keeps track of the current row position
-    this.column = 1; // waterfall index of time series to display in the spectrum plot
-    this.row = 0; // waterfall index of spectrum to display in the spectrum plot
     this.primaryCanvas = "#waterfallA"; // switch as each canvas slides below the viewable area
     this.secondaryCanvas = "#waterfallB";
     this.updateId = null; // used to control update interval
@@ -221,8 +236,10 @@ function Display() {
     this.crosshairX = 1; // default to channel 0
     this.crosshairY = 0; // default to most recent spectrum
 
-    Highcharts.setOptions(globalChartOptions);  // set global highcharts options
-    $( "#waterfall-spectrum" ).highcharts(waterfallOptions); // initialize spectrum below waterfall plot
+    // initialize plots
+    for (var number in [0,1,2,3,4,5,6,7]) {
+        $( "#spectrum-" + number).highcharts( bankSpecOptions );
+    }
 
     
     // Set listeners and associated event handlers.
@@ -347,7 +364,7 @@ function Display() {
         this.waterfallSpectra.unshift( data );
     };
 
-    this.drawDisplay = function (data, colormin, colormax, pointWidth) {  // --------------------------------------- drawDisplay
+    this.drawDisplay = function (data, colormin, colormax) {
         // First a few words about how the waterfall plot is done.
         // In order to avoid redrawing every rectangle each time
         // we get a new sample, I'm stacking each sample on top of
@@ -375,12 +392,12 @@ function Display() {
         console.log("canvas 2 top " + $(this.secondaryCanvas).position().top);
 
         // Draw the new spectrum as rectangles
-        $.each(data, function(chan, value) {
-            context.fillStyle = getFillColor(Math.log(value), colormin, colormax);
-            context.fillRect(pointWidth * chan,
+        for (var chan = 0; chan < data.length; chan++) {
+            context.fillStyle = getFillColor(Math.log(data[chan]), colormin, colormax);
+            context.fillRect(this.pointWidth * chan,
                              this.canvasHeight - (this.pointHeight * this.rowCounter),
-                             pointWidth, this.pointHeight);
-        });
+                             this.pointWidth, this.pointHeight);
+        }
 
         // Clip the bottom of the secondary canvas
         var clipPos = Math.round(canvas2.height - (this.pointHeight * this.rowCounter));
@@ -489,15 +506,16 @@ rtd.ws.onmessage = function (evt) {
             {
                 try {                    
                     var amps = amplitudes( spectra[rtd.waterfallBank][rtd.waterfallSubband] );
-                    var pointWidth = rtd.canvasWidth / amps.length;
-                    rtd.addData(amps);
+                    rtd.pointWidth = rtd.canvasWidth / amps.length;
+                    rtd.addData(spectra[rtd.waterfallBank][rtd.waterfallSubband].slice(1,-1));
                     var colormin = Math.log( getMin( amps.slice(1,-1) ) ); // omit first and last channels
                     var colormax = Math.log( getMax( amps.slice(1,-1) ) );
-                    rtd.drawDisplay(amps, colormin, colormax, pointWidth);
+                    rtd.drawDisplay(amps, colormin, colormax, rtd.pointWidth);
                     updateNeighboringPlots(rtd, rtd.crosshairX, rtd.crosshairY);
                     $( '#status' )
                         .html( 'Running' )
                         .css( 'color', 'green' );
+                    $( "#timestamp" ).html( new Date().toTimeString() );
 
                 } catch(err) { console.error( 'ERROR', err ); }
 
@@ -521,7 +539,7 @@ rtd.ws.onmessage = function (evt) {
             } else {
                 $( bankTextSelect ).css({color: "grey"});          
             }
-            drawSpec((banknum).toString(), bb, spectra);
+            drawLowerSpec((banknum).toString(), bb, spectra);
         });
         break;
     default:
