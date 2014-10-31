@@ -74,37 +74,28 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                     else:
                         spectrum = response[1]
 
-                        # if spectrum is a numpy array, convert it to a list
-                        if type(spectrum) != type([]) and hasattr(spectrum, "tolist"):
-                            spectrum = spectrum.tolist()
-
                         # get metadata from the first bank
                         #  the metadata should be the same for all banks
-                        #  !!! NB: I think we can remove 'state' as it is unique
-                        #  !!! to the bank and seems to not be used
                         if not have_metadata:
                             project, scan, state, integration = response[2:]
                             if response[0] == 'same':
                                 update_waterfall = 0
                             else:
-                                update_waterfall = 1
-
-                            update_waterfall = 1
+                                update_waterfall = 1             
                             metadata = {'project': project,
                                         'scan': scan,
-                                        'state': state,
                                         'integration': integration,
                                         'update_waterfall': update_waterfall}
                             have_metadata = True
 
-                all_banks_spectra[bank] = spectrum
+                all_banks_spectra[bank] = spectrum#np.array(zip(np.array(range(512)),np.random.random(512))).reshape((1,512,2)).tolist()#spectrum
 
             # by setting self.data we allow on_message to
             #  write a message back to the client
             ZMQWebSocket.data = [metadata, all_banks_spectra]
 
             logging.debug(strftime("%H:%M:%S"))
-            sleep(.800)
+            sleep(.500)
 
     def open(self):
         """
@@ -126,35 +117,19 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         self.connections.append(self)
         logging.info("Client browser socket connections: {}".format(len(self.connections)))
 
-    def on_message(self, request_from_client):
-        """Handle message from client.
-
-        This method is called when the client responds at the end of
-        the bank_config step in Display.js.
-
-        """
-
-        logging.debug('Client is requesting \'{0}\''.format(request_from_client))
-
-        if request_from_client == "active_banks":
-            # send message to client about what banks are active
-            message = {'header': 'bank_config',
-                       'body': self.vegasReader.active_banks}
-
-        else:
-            # check that the VEGASReader got something from the
-            #   manager and put it in the self.data buffer
+        while True:
             if self.data:
                 metadata, spectra = self.data
-                message = {'header': 'data',
-                           'body' : {'metadata' : metadata,
-                                     'spectra' : spectra
-                                     }
-                           }
+                message = {
+                    'header': 'data',
+                    'body' : {'metadata' : metadata,
+                              'spectra' : spectra}
+                }
             else:
                 message = {'header' : 'error'}
 
-        self.write_message(message)
+            self.write_message(message)
+            sleep(2)
 
     def write_message(self, msg):
         """Send a message to the client.
@@ -170,12 +145,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         """
 
         if 'data' == msg['header']:
-            try:
-                data = json.dumps(msg)
-            except TypeError:
-                logging.error('TypeError.  Numpy array?')
-                logging.error(type(msg['body']['spectra'][0]))
-                sys.exit()
+            data = json.dumps(msg)
 
         elif 'bank_config' == msg['header']:
             logging.debug(repr(msg))

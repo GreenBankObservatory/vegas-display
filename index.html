@@ -18,70 +18,19 @@
       <div id="tab-W">
         <div id="header"></div>
 	<div id="timestamp"></div>
-	<button id="reset-crosshairs" type="button">Reset Crosshairs</button>
-        <div id="crosshair-position">Column 1, Row 0</div>
 	<div id="metadata"></div>
         <div id="left-sidebar">VEGAS Data Display</div>
         <div id="status"></div>
-        <div id="display">
-          <!-- setting a high z-index on the "axis" canvas puts it at the top
-          canvas element stack.  that means it sits above waterfallA
-          and waterfall2 and will be the one to handle mouse events
-          in areas where they overlap.
-          -->
-          <canvas id="axis" width="512px" height="500px"></canvas>
-          <canvas id="waterfallA" width="512px" height="500px"></canvas>
-          <canvas id="waterfallB" width="512px" height="500px"></canvas>
-          <div id="timeseries" class="rotate-clockwise"></div>
-	  <div id="bank-choice">
-	      <input type="radio" id="bankA" name="bank" value="A">
-	      <label for="bankA">A</label>
-	      <input type="radio" id="bankB" name="bank" value="B">
-	      <label for="bankB">B</label>
-	      <input type="radio" id="bankC" name="bank" value="C">
-	      <label for="bankC">C</label>
-	      <input type="radio" id="bankD" name="bank" value="D">
-	      <label for="bankD">D</label>
-	      <input type="radio" id="bankE" name="bank" value="E">
-	      <label for="bankE">E</label>
-	      <input type="radio" id="bankF" name="bank" value="F">
-	      <label for="bankF">F</label>
-	      <input type="radio" id="bankG" name="bank" value="G">
-	      <label for="bankG">G</label>
-	      <input type="radio" id="bankH" name="bank" value="H">
-	      <label for="bankH">H</label>
-	  </div>
-	  <div id="subband-choice">
-	      <input type="radio" id="subband0" name="subband" value="0">
-	      <label for="subband0">0</label>
-	      <input type="radio" id="subband1" name="subband" value="1">
-	      <label for="subband1">1</label>
-	      <input type="radio" id="subband2" name="subband" value="2">
-	      <label for="subband2">2</label>
-	      <input type="radio" id="subband3" name="subband" value="3">
-	      <label for="subband3">3</label>
-	      <input type="radio" id="subband4" name="subband" value="4">
-	      <label for="subband4">4</label>
-	      <input type="radio" id="subband5" name="subband" value="5">
-	      <label for="subband5">5</label>
-	      <input type="radio" id="subband6" name="subband" value="6">
-	      <label for="subband6">6</label>
-	      <input type="radio" id="subband7" name="subband" value="7">
-	      <label for="subband7">7</label>
-	  </div>
-          <div id="waterfall-spectrum"></div>
-        </div>
-
       </div>
       <div id="tab-0">
-	<div id="spectrum-0" class="spectrum"></div>
-	<div id="spectrum-1" class="spectrum"></div>
-	<div id="spectrum-2" class="spectrum"></div>
-	<div id="spectrum-3" class="spectrum"></div>
-	<div id="spectrum-4" class="spectrum"></div>
-	<div id="spectrum-5" class="spectrum"></div>
-	<div id="spectrum-6" class="spectrum"></div>
-	<div id="spectrum-7" class="spectrum"></div>
+	<div id="spectrum-0" class="spectrum1"></div>
+	<div id="spectrum-1" class="spectrum1"></div>
+	<div id="spectrum-2" class="spectrum1"></div>
+	<div id="spectrum-3" class="spectrum1"></div>
+	<div id="spectrum-4" class="spectrum2"></div>
+	<div id="spectrum-5" class="spectrum2"></div>
+	<div id="spectrum-6" class="spectrum2"></div>
+	<div id="spectrum-7" class="spectrum2"></div>
       </div>
 
     </div>

@@ -402,7 +402,7 @@ class VEGASReader():
 
         state = self.get_state(bank)
 
-        if "Running" == state:
+        if True:#"Running" == state:
             try:
                 socket = self.snapshot_socket[bank]
                 dataKey = "{}.{}:Data".format(self.major_key[bank], self.minor_key[bank])
