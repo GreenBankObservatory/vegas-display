@@ -52,6 +52,7 @@ def listen_for_display_clients(port, verbose):
     def sig_handler(sig, frame):
         logging.warning("Caught signal {}".format(sig))
         tornado.ioloop.IOLoop.instance().stop()
+        sys.exit()
     
     # signal register
     signal.signal(signal.SIGINT, sig_handler)

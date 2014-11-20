@@ -11,6 +11,7 @@ import numpy as np
 import sys
 import json
 import logging
+import pylab as plt
 
 from vegas_reader import VEGASReader
 
@@ -32,20 +33,18 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         """
 
         logging.debug('querying vegas managers')
-
         ZMQWebSocket.vegasReader = VEGASReader()
-        logging.debug('type of vegasReader:', type(ZMQWebSocket.vegasReader))
 
         # continually request data from the VEGAS managers,
         # so long as there is at least one browser connection
         while self.requesting_data:
 
-            all_banks_spectra, metadata = {}, []
+            all_banks_spectra, metadata = {}, {}
             have_metadata = False
 
             # request data for each of the banks (A-H)
             for bank in self.vegasReader.banks:
-                
+
                 if bank not in self.vegasReader.active_banks:
                     logging.debug('Bank {} is not active.  '
                                   'Sending empty list to client'.format(bank))
@@ -56,19 +55,14 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                         # collect some data for the bank
                         response = self.vegasReader.get_data_sample(bank)
                         # structure of response is:
-                        #
                         #  result_state (e.g. 'ok' 'same' 'error)
-                        #  spectrum
-                        #  project
-                        #  scan
-                        #  state
-                        #  integration
+                        #  (spectrum, project, scan, integration)
                     except:
                         logging.debug('ERROR getting data sample {}'.format(sys.exc_info()))
                         response = ['error']
 
-                    if response[0] == 'error' or response[0] == 'idle':
-                        logging.debug('{0}: recording empty list for {1}'.format(response[0], bank))
+                    if response[0] == 'error' or response[0] == 'idle' or response[0] == 'noresponse':
+                        logging.debug('{}: recording empty list for {}'.format(response[0], bank))
                         spectrum = []
 
                     else:
@@ -77,25 +71,26 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                         # get metadata from the first bank
                         #  the metadata should be the same for all banks
                         if not have_metadata:
-                            project, scan, state, integration = response[2:]
+                            metadata = response[2]
+
                             if response[0] == 'same':
-                                update_waterfall = 0
+                                print 'same, not updating'
+                                metadata['update'] = 0
                             else:
-                                update_waterfall = 1             
-                            metadata = {'project': project,
-                                        'scan': scan,
-                                        'integration': integration,
-                                        'update_waterfall': update_waterfall}
+                                metadata['update'] = 1
+
+                            if ALWAYS_UPDATE: metadata['update'] = 1
+
                             have_metadata = True
 
-                all_banks_spectra[bank] = spectrum#np.array(zip(np.array(range(512)),np.random.random(512))).reshape((1,512,2)).tolist()#spectrum
+                all_banks_spectra[bank] = spectrum#np.array(zip(np.array(range(512)),np.random.random(512))).reshape((1,512,2)).tolist()
 
             # by setting self.data we allow on_message to
             #  write a message back to the client
             ZMQWebSocket.data = [metadata, all_banks_spectra]
 
             logging.debug(strftime("%H:%M:%S"))
-            sleep(.500)
+            sleep(2)
 
     def open(self):
         """
@@ -118,18 +113,28 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         logging.info("Client browser socket connections: {}".format(len(self.connections)))
 
         while True:
-            if self.data:
+            if hasattr(ZMQWebSocket, 'data') and ZMQWebSocket.data:
                 metadata, spectra = self.data
                 message = {
                     'header': 'data',
-                    'body' : {'metadata' : metadata,
-                              'spectra' : spectra}
+                    'body' : {'metadata' : metadata, 'spectra' : spectra}
                 }
-            else:
-                message = {'header' : 'error'}
+                print 'message', message['header'],  message['body']['metadata']
 
-            self.write_message(message)
-            sleep(2)
+                if message['body']:
+                    specs = message['body']['spectra']
+                    for bank in specs:
+                        plt.figure(figsize=(6,2))
+                        vals = np.array(specs[bank])
+                        for win,dta in enumerate(vals): 
+                            plt.plot(dta[:,0]/1e9, dta[:,1])
+                        plt.title(bank + " " + strftime("%H:%M:%S"))
+                        plt.savefig(bank+'.png')
+                        plt.clf()
+                    self.write_message(message)
+
+                ZMQWebSocket.data = None
+                sleep(2)
 
     def write_message(self, msg):
         """Send a message to the client.
@@ -144,27 +149,16 @@ class ZMQWebSocket(websocket.WebSocketHandler):
 
         """
 
-        if 'data' == msg['header']:
-            data = json.dumps(msg)
-
-        elif 'bank_config' == msg['header']:
-            logging.debug(repr(msg))
-            data = json.dumps(msg)
-
-        else:
-            logging.debug(repr(msg))
-            data = json.dumps(msg)
-
         # the following line sends the data to the JS client
         # python 3 syntax would be super().write_message(data)
-        super(ZMQWebSocket, self).write_message(data)
+        print 'sending'
+        super(ZMQWebSocket, self).write_message( json.dumps(msg) )
 
     def on_close(self):
+        self.connections.pop()
 
         if self.connections:
-            self.connections.pop()
-
-        else:
             ZMQWebSocket.requesting_data = False
+            self.server_thread.join()
 
         logging.info("Connections: {}".format(len(self.connections)))
