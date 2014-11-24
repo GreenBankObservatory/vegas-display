@@ -1,0 +1,121 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <script>
+      function showplots()
+      {
+	  var canvasA = document.getElementById('canvasA');
+	  var canvasB = document.getElementById('canvasB');
+	  var canvasC = document.getElementById('canvasC');
+	  var canvasD = document.getElementById('canvasD');
+	  var canvasE = document.getElementById('canvasE');
+	  var canvasF = document.getElementById('canvasF');
+	  var canvasG = document.getElementById('canvasG');
+	  var canvasH = document.getElementById('canvasH');
+    
+	  var ctxA = canvasA.getContext('2d');
+	  var ctxB = canvasB.getContext('2d');
+	  var ctxC = canvasC.getContext('2d');
+	  var ctxD = canvasD.getContext('2d');
+	  var ctxE = canvasE.getContext('2d');
+	  var ctxF = canvasF.getContext('2d');
+	  var ctxG = canvasG.getContext('2d');
+	  var ctxH = canvasH.getContext('2d');
+    
+	  var imageA = new Image();
+	  var imageB = new Image();
+	  var imageC = new Image();
+	  var imageD = new Image();
+	  var imageE = new Image();
+	  var imageF = new Image();
+	  var imageG = new Image();
+	  var imageH = new Image();
+
+	  imageA.onload = function() {
+	    ctxA.drawImage(imageA, 0, 0);
+	    setTimeout(showplots, 1000);
+	  };
+	  imageB.onload = function() {
+	    ctxB.drawImage(imageB, 0, 0);
+	  };
+	  imageC.onload = function() {
+	    ctxC.drawImage(imageC, 0, 0);
+	  };
+	  imageD.onload = function() {
+	    ctxD.drawImage(imageD, 0, 0);
+	  };
+	  imageE.onload = function() {
+	    ctxE.drawImage(imageE, 0, 0);
+	  };
+	  imageF.onload = function() {
+	    ctxF.drawImage(imageF, 0, 0);
+	  };
+	  imageG.onload = function() {
+	    ctxG.drawImage(imageG, 0, 0);
+	  };
+	  imageH.onload = function() {
+	    ctxH.drawImage(imageH, 0, 0);
+	  };
+
+          imageA.src = 'static/A.png?=' + Math.random();
+          imageB.src = 'static/B.png?=' + Math.random();
+          imageC.src = 'static/C.png?=' + Math.random();
+          imageD.src = 'static/D.png?=' + Math.random();
+          imageE.src = 'static/E.png?=' + Math.random();
+          imageF.src = 'static/F.png?=' + Math.random();
+          imageG.src = 'static/G.png?=' + Math.random();
+          imageH.src = 'static/H.png?=' + Math.random();
+      }
+
+      function cliA() {
+         window.location.href = "windows?bank=A";
+      }
+      function cliB() {
+         window.location.href = "windows?bank=B";
+      }
+      function cliC() {
+         window.location.href = "windows?bank=C";
+      }
+      function cliD() {
+         window.location.href = "windows?bank=D";
+      }
+      function cliE() {
+         window.location.href = "windows?bank=E";
+      }
+      function cliF() {
+         window.location.href = "windows?bank=F";
+      }
+      function cliG() {
+         window.location.href = "windows?bank=G";
+      }
+      function cliH() {
+         window.location.href = "windows?bank=H";
+      }
+    </script>
+  </head>
+  <body onload="showplots()">
+    <div style="position:absolute; top:000px; left:0px">
+      <canvas id="canvasA" width="600" height="200" onclick="cliA()"></canvas>
+    <div style="position:absolute; top:200px; left:0px">
+      <canvas id="canvasB" width="600" height="200" onclick="cliB()"></canvas>
+    </div>
+    <div style="position:absolute; top:400px; left:0px">
+      <canvas id="canvasC" width="600" height="200" onclick="cliC()"></canvas>
+    </div>
+    <div style="position:absolute; top:600px; left:0px">
+      <canvas id="canvasD" width="600" height="200" onclick="cliD()"></canvas>
+    </div>
+    <div style="position:absolute; top:000px; left:600px">
+      <canvas id="canvasE" width="600" height="200" onclick="cliE()"></canvas>
+    </div>
+    <div style="position:absolute; top:200px; left:600px">
+      <canvas id="canvasF" width="600" height="200" onclick="cliF()"></canvas>
+    </div>
+    <div style="position:absolute; top:400px; left:600px">
+      <canvas id="canvasG" width="600" height="200" onclick="cliG()"></canvas>
+    </div>
+    <div style="position:absolute; top:600px; left:600px">
+      <canvas id="canvasH" width="600" height="200" onclick="cliH()"></canvas>
+    </div>
+  </body>
+</html>

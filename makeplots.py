@@ -1,7 +1,5 @@
 from server_config import *
 
-from tornado import websocket
-
 import zmq
 from zmq.eventloop import zmqstream
 
@@ -12,14 +10,18 @@ import sys
 import json
 import logging
 import pylab as plt
-
 from vegas_reader import VEGASReader
 
-class ZMQWebSocket(websocket.WebSocketHandler):
+plt.rc('font', size='8')
+plt.rc('xtick', labelsize='small')
+plt.rc('lines', linewidth='.5', antialiased=True)
+plt.rc('figure', figsize=(6,2))
+
+class Plots():
 
     connections = []
     data = None
-    server_thread = None
+    plots_thread = None
     requesting_data = True
     vegasReader = None
 
@@ -33,7 +35,7 @@ class ZMQWebSocket(websocket.WebSocketHandler):
         """
 
         logging.debug('querying vegas managers')
-        ZMQWebSocket.vegasReader = VEGASReader()
+        Plots.vegasReader = VEGASReader()
 
         # continually request data from the VEGAS managers,
         # so long as there is at least one browser connection
@@ -72,7 +74,6 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                         #  the metadata should be the same for all banks
                         if not have_metadata:
                             metadata = response[2]
-
                             if response[0] == 'same':
                                 print 'same, not updating'
                                 metadata['update'] = 0
@@ -80,85 +81,93 @@ class ZMQWebSocket(websocket.WebSocketHandler):
                                 metadata['update'] = 1
 
                             if ALWAYS_UPDATE: metadata['update'] = 1
-
                             have_metadata = True
 
                 all_banks_spectra[bank] = spectrum#np.array(zip(np.array(range(512)),np.random.random(512))).reshape((1,512,2)).tolist()
 
             # by setting self.data we allow on_message to
             #  write a message back to the client
-            ZMQWebSocket.data = [metadata, all_banks_spectra]
+            Plots.data = [metadata, all_banks_spectra]
 
-            logging.debug(strftime("%H:%M:%S"))
-            sleep(2)
+            print(strftime("%H:%M:%S"))
 
-    def open(self):
+    def plot_window(self, bank, win, vals):
+        windowfig = plt.figure(2)
+        windowfig.subplots_adjust(bottom=0.15, top=0.85)
+        ax_win = windowfig.add_subplot(1,1,1)
+        n_windows = len(vals)
+        if win > n_windows-1:
+            ax_win.plot(None)
+        else:
+            dta = vals[win]
+            ax_win.plot(dta[:,0]/1e9, dta[:,1])
+
+        ax_win.set_title("Spec. " + bank +
+                         " Win. " + str(win) + 
+                         " " + strftime("%Y/%m/%d %H:%M:%S"))
+        ax_win.set_ylabel("counts")
+        ax_win.set_xlabel("GHz")
+        windowfig.savefig('static/{0}{1}.png'.format(bank,win))
+        windowfig.clf()
+
+    def plot_banks(self, specs):
+        for bank in specs:
+            bankfig = plt.figure(1)
+            bankfig.subplots_adjust(bottom=0.15, top=0.85)
+            vals = np.array(specs[bank])
+            ax_bank = bankfig.add_subplot(1,1,1)
+            n_windows = len(vals)
+            for win in range(8):
+                self.plot_window(bank, win, vals)
+                if win > n_windows-1:
+                    ax_bank.plot(None)
+                else:
+                    dta = vals[win]
+                    ax_bank.plot(dta[:,0]/1e9, dta[:,1])
+
+            ax_bank.set_title("Spectrometer " + bank + " " + 
+                              strftime("%Y/%m/%d %H:%M:%S"))
+            ax_bank.set_ylabel("counts")
+            ax_bank.set_xlabel("GHz")
+            bankfig.savefig('static/{0}.png'.format(bank))
+            bankfig.clf()
+
+
+    def make(self):
         """
         This method is called when the JS creates a WebSocket object.
 
         """
-        logging.debug('SOCKET OPENED')
-
         # Start service that reads spectra from manager
-        if not self.server_thread:
-
-            logging.info('starting display server')
-            ZMQWebSocket.server_thread = threading.Thread(target=self.query_vegas_managers)
-            self.server_thread.setDaemon(True)
-            self.server_thread.start()
-            # give it a second to get started before looking for data
-            sleep(1)
-
-        self.connections.append(self)
-        logging.info("Client browser socket connections: {}".format(len(self.connections)))
+        logging.info('starting plots thread')
+        Plots.plots_thread = threading.Thread(target=self.query_vegas_managers)
+        self.plots_thread.setDaemon(True)
+        self.plots_thread.start()
+        # give it a second to get started before looking for data
+        sleep(1)
 
         while True:
-            if hasattr(ZMQWebSocket, 'data') and ZMQWebSocket.data:
+            if hasattr(Plots, 'data') and Plots.data:
                 metadata, spectra = self.data
                 message = {
                     'header': 'data',
                     'body' : {'metadata' : metadata, 'spectra' : spectra}
                 }
-                print 'message', message['header'],  message['body']['metadata']
+                print 'message', message['header'],  message['body']['metadata'],strftime("%Y/%m/%d %H:%M:%S")
 
                 if message['body']:
                     specs = message['body']['spectra']
-                    for bank in specs:
-                        plt.figure(figsize=(6,2))
-                        vals = np.array(specs[bank])
-                        for win,dta in enumerate(vals): 
-                            plt.plot(dta[:,0]/1e9, dta[:,1])
-                        plt.title(bank + " " + strftime("%H:%M:%S"))
-                        plt.savefig(bank+'.png')
-                        plt.clf()
-                    self.write_message(message)
+                    self.plot_banks(specs)
+                    print "Made plots",strftime("%Y/%m/%d %H:%M:%S")
 
-                ZMQWebSocket.data = None
+                Plots.data = None
                 sleep(2)
-
-    def write_message(self, msg):
-        """Send a message to the client.
-
-        This method extends the write_message() method of the
-        websocket.WebSocketHandler() base class [using super()] with
-        the preamble code that converts the message to unicode, sets
-        the message size and records timing information.
-
-        write_message is invoked by the write_message() call in
-        get_data_sample() [or socket open() on socket creation?].
-
-        """
-
-        # the following line sends the data to the JS client
-        # python 3 syntax would be super().write_message(data)
-        print 'sending'
-        super(ZMQWebSocket, self).write_message( json.dumps(msg) )
 
     def on_close(self):
         self.connections.pop()
 
         if self.connections:
-            ZMQWebSocket.requesting_data = False
-            self.server_thread.join()
+            Plots.requesting_data = False
+            self.plots_thread.join()
 
         logging.info("Connections: {}".format(len(self.connections)))

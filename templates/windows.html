@@ -1,0 +1,62 @@
+$def with (bank)
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <script>
+      function foo()
+      {
+      var canvas = document.getElementById('myCanvas');
+      var context = canvas.getContext('2d');
+      var image0 = new Image();
+      var image1 = new Image();
+      var image2 = new Image();
+      var image3 = new Image();
+      var image4 = new Image();
+      var image5 = new Image();
+      var image6 = new Image();
+      var image7 = new Image();
+
+      image0.onload = function() {
+        context.drawImage(image0, 0, 0);
+        setTimeout(foo, 2000);
+      };
+      image1.onload = function() {
+        context.drawImage(image1, 0, 200);
+      };
+      image2.onload = function() {
+        context.drawImage(image2, 0, 400);
+      };
+      image3.onload = function() {
+        context.drawImage(image3, 0, 600);
+      };
+      image4.onload = function() {
+        context.drawImage(image4, 600, 0);
+      };
+      image5.onload = function() {
+        context.drawImage(image5, 600, 200);
+      };
+      image6.onload = function() {
+        context.drawImage(image6, 600, 400);
+      };
+      image7.onload = function() {
+        context.drawImage(image7, 600, 600);
+      };
+      image0.src = 'static/$(bank)0.png?=' + Math.random();
+      image1.src = 'static/$(bank)1.png?=' + Math.random();
+      image2.src = 'static/$(bank)2.png?=' + Math.random();
+      image3.src = 'static/$(bank)3.png?=' + Math.random();
+      image4.src = 'static/$(bank)4.png?=' + Math.random();
+      image5.src = 'static/$(bank)5.png?=' + Math.random();
+      image6.src = 'static/$(bank)6.png?=' + Math.random();
+      image7.src = 'static/$(bank)7.png?=' + Math.random();
+      }
+
+      function cli() {
+          window.location.href = "/";
+      }
+    </script>
+  </head>
+  <body onload="foo()">
+    <canvas id="myCanvas" width="1200" height="800" onclick="cli()"></canvas>
+  </body>
+</html>
