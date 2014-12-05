@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
   <head>
+    <title>VEGAS Banks</title>
     <script>
       function showplots()
       {
@@ -33,7 +34,6 @@
 
 	  imageA.onload = function() {
 	    ctxA.drawImage(imageA, 0, 0);
-	    setTimeout(showplots, 1000);
 	  };
 	  imageB.onload = function() {
 	    ctxB.drawImage(imageB, 0, 0);
@@ -65,6 +65,8 @@
           imageF.src = 'static/F.png?=' + Math.random();
           imageG.src = 'static/G.png?=' + Math.random();
           imageH.src = 'static/H.png?=' + Math.random();
+
+          setTimeout(showplots, 1000);
       }
 
       function cliA() {
@@ -96,6 +98,7 @@
   <body onload="showplots()">
     <div style="position:absolute; top:000px; left:0px">
       <canvas id="canvasA" width="600" height="200" onclick="cliA()"></canvas>
+    </div>
     <div style="position:absolute; top:200px; left:0px">
       <canvas id="canvasB" width="600" height="200" onclick="cliB()"></canvas>
     </div>

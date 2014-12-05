@@ -1,0 +1,32 @@
+$def with (bank,window)
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>VEGAS Bank $(bank) Window $(window)</title>
+    <link rel="stylesheet" href="/static/app.css">
+    <script>
+      function showplots()
+      {
+      var canvas = document.getElementById('myCanvas');
+      var context = canvas.getContext('2d');
+      var image = new Image();
+
+      image.onload = function() {
+        context.drawImage(image, 0, 0);
+      };
+      image.src = 'static/waterfall$(bank)$(window).png?=' + Math.random();
+
+      setTimeout(showplots, 1000);
+      }
+
+      function cli() {
+          window.location.href = "windows?bank=$(bank)";
+      }
+    </script>
+  </head>
+  <body onload="showplots()">
+    <div style="position:absolute; top:40px; left:0px">
+      <canvas id="myCanvas" width="800" height="600" onclick="cli()"></canvas>
+    </div>
+  </body>
+</html>
