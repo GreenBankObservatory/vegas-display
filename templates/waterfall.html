@@ -9,24 +9,43 @@ $def with (bank,window)
       {
       var canvas = document.getElementById('myCanvas');
       var context = canvas.getContext('2d');
-      var image = new Image();
+      var waterfallimage = new Image();
+      var spectrumimage = new Image();
 
-      image.onload = function() {
-        context.drawImage(image, 0, 0);
+      waterfallimage.onload = function() {
+        context.drawImage(waterfallimage, 0, 0);
       };
-      image.src = 'static/waterfall$(bank)$(window).png?=' + Math.random();
+      spectrumimage.onload = function() {
+        context.drawImage(spectrumimage, 640, 100);
+      };
+      waterfallimage.src = 'static/waterfall$(bank)$(window).png?=' + Math.random();
+      spectrumimage.src = 'static/$(bank)$(window).png?=' + Math.random();
 
       setTimeout(showplots, 1000);
       }
 
-      function cli() {
-          window.location.href = "windows?bank=$(bank)";
+      function showbank(bank) {
+          window.location.href = "windows?bank=" + bank;
+      }
+      
+      function allbanks() {
+          window.location.href = "/";
       }
     </script>
   </head>
-  <body onload="showplots()">
-    <div style="position:absolute; top:40px; left:0px">
-      <canvas id="myCanvas" width="800" height="600" onclick="cli()"></canvas>
+  <body onload="showplots()" style="font-size:12px">
+    <button class="btn" type="button" onclick="allbanks()">All banks</button>
+    <button class="btn" type="button" onclick="showbank('A')">A</button>
+    <button class="btn" type="button" onclick="showbank('B')">B</button>
+    <button class="btn" type="button" onclick="showbank('C')">C</button>
+    <button class="btn" type="button" onclick="showbank('D')">D</button>
+    <button class="btn" type="button" onclick="showbank('E')">E</button>
+    <button class="btn" type="button" onclick="showbank('F')">F</button>
+    <button class="btn" type="button" onclick="showbank('G')">G</button>
+    <button class="btn" type="button" onclick="showbank('H')">H</button>
+    <p>Waterfall spectra have first available integration of current scan subtracted, as an approximate reference to remove baseline structure.</p>
+    <div style="position:absolute; top:70px; left:0px">
+      <canvas id="myCanvas" width="1240" height="480"></canvas>
     </div>
   </body>
 </html>

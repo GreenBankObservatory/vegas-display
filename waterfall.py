@@ -64,19 +64,18 @@ def main(bank):
     gwaterfall('set term png enhanced font '
                '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf"')
     gwaterfall('set data style image')
-    gwaterfall('set xrange [0:512]')
-    gwaterfall('set yrange [0:100]')
+    gwaterfall('set xrange [0:{}]'.format(NCHANS))
+    gwaterfall('set yrange [0:{}]'.format(NROWS))
     gwaterfall.xlabel('channel')
-    gwaterfall.ylabel('integration')
+    gwaterfall.ylabel('integrations past')
     
-    gtest = Gnuplot.Gnuplot(persist=0)
-    gtest('set data style image')
-    gtest('set yrange [0:100]')
-    gtest('set xrange [0:512]')
     data_buffer = []
     for win in range(8):
-        data_buffer.append(np.zeros((100,512)))
+        data_buffer.append(np.array([float('nan')]*NROWS*NCHANS).reshape((NROWS,NCHANS)))
 
+    prevscan, prevint = None, None
+    update_reference = False
+    reference_integration = None
     while True:
         value, request_pending = get_value(context, bank, poller, state_key,
                                            directory_socket, data_socket,
@@ -84,26 +83,54 @@ def main(bank):
         if value:
             logging.debug('{} = {}'.format(state_key,value))
 
-        if value == 'Running':
+        if ALWAYS_UPDATE: ready_for_value = True
+        else: ready_for_value = (value == 'Running')
+
+        if ready_for_value:
             value, request_pending = get_value(context, bank, poller, data_key,
                                                directory_socket, data_socket,
                                                request_pending, directory_url)
             if value:
-                spec = value[3]
-#                import pdb; pdb.set_trace()
-                logging.debug('{} {} {} {}'.format(value[0],value[1],value[2],value[3].shape))
-                for win in range(len(spec)):
-                    data_buffer[win] = np.roll(data_buffer[win], shift=1, axis=0)
-                    data_buffer[win][0] = spec[win][:,1]
-                    gwaterfall.title('Spectrometer {} '
-                                     'Window {} {}'.format(bank, win,
-                                                           strftime('  %Y-%m-%d %H:%M:%S')))
-                    gwaterfall('set out "static/waterfall{}{}.png"'.format(bank, win))
-                    gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0, inline=0)
-                    gwaterfall.plot(gdata)
-                    #gtest.plot(Gnuplot.GridData(data_buffer[win], binary=0, inline=0))
+                proj, scan, integration, spec = value
+                logging.debug('{} {} {} {}'.format(proj, scan, integration, spec.shape))
+
+                if (prevscan,prevint) != (scan,integration) or ALWAYS_UPDATE:
+                    if prevscan != scan:
+                        update_reference = True
+                        logging.debug('new reference. scan changed:', scan)
+
+                    prevscan = scan
+                    prevint = integration
+                    for win in range(len(spec)):
+                        data_buffer[win] = np.roll(data_buffer[win], shift=1, axis=0)
+                        data_buffer[win][0] = spec[win][:,1]
+    
+                        if update_reference:
+                            logging.debug('updated reference')
+                            reference_integration = np.copy(data_buffer[win][0])
+                            update_reference = False
+                        
+                        data_buffer[win][0] -= reference_integration
+
+                        gwaterfall.title('Spec. {} Win. {} '
+                                         'Scan {} '
+                                         'Int. {} {}'.format(bank, win, scan, 
+                                                             integration,
+                                                             strftime('  %Y-%m-%d %H:%M:%S')))
+                        gwaterfall('set out "static/waterfall{}{}.png"'.format(bank, win))
+                        gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0, inline=0)
+
+                        # this avoids a repeated warning message about the colorbox range
+                        # (cbrange) being [0:0] when the data are all zeros
+                        if np.ptp(gdata) == 0:
+                            gwaterfall('set cbrange [-1:1]')
+                        else:
+                            gwaterfall('set cbrange [*:*]')
+    
+                        gwaterfall.plot(gdata)
+
         # pace the data requests    
-        sleep(1)
+        sleep(UPDATE_RATE)
 
 def get_value(context, bank, poller, key, directory_socket,
               data_socket, request_pending, directory_url):
@@ -123,7 +150,8 @@ def get_value(context, bank, poller, key, directory_socket,
 
     # handle directory service message
     if directory_socket in socks and socks[directory_socket] == zmq.POLLIN:
-        handle_publisher(context, directory_url, bank, data_socket)
+        key, payload = directory_socket.recv_multipart()
+        handle_publisher(context, directory_url, bank, data_socket, payload)
         return None, None
 
     # handle data response
@@ -147,7 +175,7 @@ def open_a_socket(context, url, service_type=zmq.REQ):
     socket.connect(url)
     return socket
 
-def handle_publisher(context, directory_url, bank):
+def handle_publisher(context, directory_url, bank, data_socket, payload):
     # directory service, new interface. If it's ours,
     # need to reconnect.
     reqb = PBRequestService()

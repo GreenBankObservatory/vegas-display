@@ -2,123 +2,121 @@
 <html>
   <head>
     <title>VEGAS Banks</title>
+    <link rel="stylesheet" href="/static/app.css">
     <script>
-      function showplots()
-      {
-	  var canvasA = document.getElementById('canvasA');
-	  var canvasB = document.getElementById('canvasB');
-	  var canvasC = document.getElementById('canvasC');
-	  var canvasD = document.getElementById('canvasD');
-	  var canvasE = document.getElementById('canvasE');
-	  var canvasF = document.getElementById('canvasF');
-	  var canvasG = document.getElementById('canvasG');
-	  var canvasH = document.getElementById('canvasH');
+      var draw = function(ctx, image) {
+          console.log('drawing',image);
+          ctx.drawImage(image, 0, 0);
+      }
+
+      function showplots(){
+	  var canvas0 = document.getElementById('canvasA');
+	  var canvas1 = document.getElementById('canvasB');
+	  var canvas2 = document.getElementById('canvasC');
+	  var canvas3 = document.getElementById('canvasD');
+	  var canvas4 = document.getElementById('canvasE');
+	  var canvas5 = document.getElementById('canvasF');
+	  var canvas6 = document.getElementById('canvasG');
+	  var canvas7 = document.getElementById('canvasH');
     
-	  var ctxA = canvasA.getContext('2d');
-	  var ctxB = canvasB.getContext('2d');
-	  var ctxC = canvasC.getContext('2d');
-	  var ctxD = canvasD.getContext('2d');
-	  var ctxE = canvasE.getContext('2d');
-	  var ctxF = canvasF.getContext('2d');
-	  var ctxG = canvasG.getContext('2d');
-	  var ctxH = canvasH.getContext('2d');
-    
-	  var imageA = new Image();
-	  var imageB = new Image();
-	  var imageC = new Image();
-	  var imageD = new Image();
-	  var imageE = new Image();
-	  var imageF = new Image();
-	  var imageG = new Image();
-	  var imageH = new Image();
+	  var ctx0 = canvas0.getContext('2d');
+	  var ctx1 = canvas1.getContext('2d');
+	  var ctx2 = canvas2.getContext('2d');
+	  var ctx3 = canvas3.getContext('2d');
+	  var ctx4 = canvas4.getContext('2d');
+	  var ctx5 = canvas5.getContext('2d');
+	  var ctx6 = canvas6.getContext('2d');
+	  var ctx7 = canvas7.getContext('2d');
 
-	  imageA.onload = function() {
-	    ctxA.drawImage(imageA, 0, 0);
-	  };
-	  imageB.onload = function() {
-	    ctxB.drawImage(imageB, 0, 0);
-	  };
-	  imageC.onload = function() {
-	    ctxC.drawImage(imageC, 0, 0);
-	  };
-	  imageD.onload = function() {
-	    ctxD.drawImage(imageD, 0, 0);
-	  };
-	  imageE.onload = function() {
-	    ctxE.drawImage(imageE, 0, 0);
-	  };
-	  imageF.onload = function() {
-	    ctxF.drawImage(imageF, 0, 0);
-	  };
-	  imageG.onload = function() {
-	    ctxG.drawImage(imageG, 0, 0);
-	  };
-	  imageH.onload = function() {
-	    ctxH.drawImage(imageH, 0, 0);
-	  };
+	  var image0 = new Image();
+	  var image1 = new Image();
+	  var image2 = new Image();
+	  var image3 = new Image();
+	  var image4 = new Image();
+	  var image5 = new Image();
+	  var image6 = new Image();
+	  var image7 = new Image();
 
-          imageA.src = 'static/A.png?=' + Math.random();
-          imageB.src = 'static/B.png?=' + Math.random();
-          imageC.src = 'static/C.png?=' + Math.random();
-          imageD.src = 'static/D.png?=' + Math.random();
-          imageE.src = 'static/E.png?=' + Math.random();
-          imageF.src = 'static/F.png?=' + Math.random();
-          imageG.src = 'static/G.png?=' + Math.random();
-          imageH.src = 'static/H.png?=' + Math.random();
-
+	  image0.onload = function() {
+	    ctx0.drawImage(image0, 0, 0);
+	  };
+	  image1.onload = function() {
+	    ctx1.drawImage(image1, 0, 0);
+	  };
+	  image2.onload = function() {
+	    ctx2.drawImage(image2, 0, 0);
+	  };
+	  image3.onload = function() {
+	    ctx3.drawImage(image3, 0, 0);
+	  };
+	  image4.onload = function() {
+	    ctx4.drawImage(image4, 0, 0);
+	  };
+	  image5.onload = function() {
+	    ctx5.drawImage(image5, 0, 0);
+	  };
+	  image6.onload = function() {
+	    ctx6.drawImage(image6, 0, 0);
+	  };
+	  image7.onload = function() {
+	    ctx7.drawImage(image7, 0, 0);
+	  };
+	  image0.src = 'static/A.png?=' + Math.random();
+	  image1.src = 'static/B.png?=' + Math.random();
+	  image2.src = 'static/C.png?=' + Math.random();
+	  image3.src = 'static/D.png?=' + Math.random();
+	  image4.src = 'static/E.png?=' + Math.random();
+	  image5.src = 'static/F.png?=' + Math.random();
+	  image6.src = 'static/G.png?=' + Math.random();
+	  image7.src = 'static/H.png?=' + Math.random();
           setTimeout(showplots, 1000);
       }
 
-      function cliA() {
-         window.location.href = "windows?bank=A";
+      function showbank(bank) {
+          window.location.href = "windows?bank=" + bank;
       }
-      function cliB() {
-         window.location.href = "windows?bank=B";
+
+      function allbanks() {
+          window.location.href = "/";
       }
-      function cliC() {
-         window.location.href = "windows?bank=C";
-      }
-      function cliD() {
-         window.location.href = "windows?bank=D";
-      }
-      function cliE() {
-         window.location.href = "windows?bank=E";
-      }
-      function cliF() {
-         window.location.href = "windows?bank=F";
-      }
-      function cliG() {
-         window.location.href = "windows?bank=G";
-      }
-      function cliH() {
-         window.location.href = "windows?bank=H";
+      function cli(bank) {
+         window.location.href = "windows?bank="+bank;
       }
     </script>
   </head>
   <body onload="showplots()">
-    <div style="position:absolute; top:000px; left:0px">
-      <canvas id="canvasA" width="600" height="200" onclick="cliA()"></canvas>
+    <button class="btn" type="button" onclick="allbanks()">All banks</button>
+    <button class="btn" type="button" onclick="showbank('A')">A</button>
+    <button class="btn" type="button" onclick="showbank('B')">B</button>
+    <button class="btn" type="button" onclick="showbank('C')">C</button>
+    <button class="btn" type="button" onclick="showbank('D')">D</button>
+    <button class="btn" type="button" onclick="showbank('E')">E</button>
+    <button class="btn" type="button" onclick="showbank('F')">F</button>
+    <button class="btn" type="button" onclick="showbank('G')">G</button>
+    <button class="btn" type="button" onclick="showbank('H')">H</button>
+    <div style="position:absolute; top:40px; left:0px">
+      <canvas id="canvasA" width="600" height="200" onclick="cli('A')"></canvas>
     </div>
-    <div style="position:absolute; top:200px; left:0px">
-      <canvas id="canvasB" width="600" height="200" onclick="cliB()"></canvas>
+    <div style="position:absolute; top:240px; left:0px">
+      <canvas id="canvasB" width="600" height="200" onclick="cli('B')"></canvas>
     </div>
-    <div style="position:absolute; top:400px; left:0px">
-      <canvas id="canvasC" width="600" height="200" onclick="cliC()"></canvas>
+    <div style="position:absolute; top:440px; left:0px">
+      <canvas id="canvasC" width="600" height="200" onclick="cli('C')"></canvas>
     </div>
-    <div style="position:absolute; top:600px; left:0px">
-      <canvas id="canvasD" width="600" height="200" onclick="cliD()"></canvas>
+    <div style="position:absolute; top:640px; left:0px">
+      <canvas id="canvasD" width="600" height="200" onclick="cli('D')"></canvas>
     </div>
-    <div style="position:absolute; top:000px; left:600px">
-      <canvas id="canvasE" width="600" height="200" onclick="cliE()"></canvas>
+    <div style="position:absolute; top:40px; left:600px">
+      <canvas id="canvasE" width="600" height="200" onclick="cli('E')"></canvas>
     </div>
-    <div style="position:absolute; top:200px; left:600px">
-      <canvas id="canvasF" width="600" height="200" onclick="cliF()"></canvas>
+    <div style="position:absolute; top:240px; left:600px">
+      <canvas id="canvasF" width="600" height="200" onclick="cli('F')"></canvas>
     </div>
-    <div style="position:absolute; top:400px; left:600px">
-      <canvas id="canvasG" width="600" height="200" onclick="cliG()"></canvas>
+    <div style="position:absolute; top:440px; left:600px">
+      <canvas id="canvasG" width="600" height="200" onclick="cli('G')"></canvas>
     </div>
-    <div style="position:absolute; top:600px; left:600px">
-      <canvas id="canvasH" width="600" height="200" onclick="cliH()"></canvas>
+    <div style="position:absolute; top:640px; left:600px">
+      <canvas id="canvasH" width="600" height="200" onclick="cli('H')"></canvas>
     </div>
   </body>
 </html>

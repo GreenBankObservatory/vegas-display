@@ -25,74 +25,57 @@ $def with (bank)
 	  var ctx6 = canvas6.getContext('2d');
 	  var ctx7 = canvas7.getContext('2d');
 
-      var image0 = new Image();
-      var image1 = new Image();
-      var image2 = new Image();
-      var image3 = new Image();
-      var image4 = new Image();
-      var image5 = new Image();
-      var image6 = new Image();
-      var image7 = new Image();
+	  var image0 = new Image();
+	  var image1 = new Image();
+	  var image2 = new Image();
+	  var image3 = new Image();
+	  var image4 = new Image();
+	  var image5 = new Image();
+	  var image6 = new Image();
+	  var image7 = new Image();
 
-      image0.onload = function() {
-        ctx0.drawImage(image0, 0, 0);
-      };
-      image1.onload = function() {
-        ctx1.drawImage(image1, 0, 0);
-      };
-      image2.onload = function() {
-        ctx2.drawImage(image2, 0, 0);
-      };
-      image3.onload = function() {
-        ctx3.drawImage(image3, 0, 0);
-      };
-      image4.onload = function() {
-        ctx4.drawImage(image4, 0, 0);
-      };
-      image5.onload = function() {
-        ctx5.drawImage(image5, 0, 0);
-      };
-      image6.onload = function() {
-        ctx6.drawImage(image6, 0, 0);
-      };
-      image7.onload = function() {
-        ctx7.drawImage(image7, 0, 0);
-      };
-      image0.src = 'static/$(bank)0.png?=' + Math.random();
-      image1.src = 'static/$(bank)1.png?=' + Math.random();
-      image2.src = 'static/$(bank)2.png?=' + Math.random();
-      image3.src = 'static/$(bank)3.png?=' + Math.random();
-      image4.src = 'static/$(bank)4.png?=' + Math.random();
-      image5.src = 'static/$(bank)5.png?=' + Math.random();
-      image6.src = 'static/$(bank)6.png?=' + Math.random();
-      image7.src = 'static/$(bank)7.png?=' + Math.random();
+	  image0.onload = function() {
+	    ctx0.drawImage(image0, 0, 0);
+	  };
+	  image1.onload = function() {
+	    ctx1.drawImage(image1, 0, 0);
+	  };
+	  image2.onload = function() {
+	    ctx2.drawImage(image2, 0, 0);
+	  };
+	  image3.onload = function() {
+	    ctx3.drawImage(image3, 0, 0);
+	  };
+	  image4.onload = function() {
+	    ctx4.drawImage(image4, 0, 0);
+	  };
+	  image5.onload = function() {
+	    ctx5.drawImage(image5, 0, 0);
+	  };
+	  image6.onload = function() {
+	    ctx6.drawImage(image6, 0, 0);
+	  };
+	  image7.onload = function() {
+	    ctx7.drawImage(image7, 0, 0);
+	  };
+	  image0.src = 'static/$(bank)0.png?=' + Math.random();
+	  image1.src = 'static/$(bank)1.png?=' + Math.random();
+	  image2.src = 'static/$(bank)2.png?=' + Math.random();
+	  image3.src = 'static/$(bank)3.png?=' + Math.random();
+	  image4.src = 'static/$(bank)4.png?=' + Math.random();
+	  image5.src = 'static/$(bank)5.png?=' + Math.random();
+	  image6.src = 'static/$(bank)6.png?=' + Math.random();
+	  image7.src = 'static/$(bank)7.png?=' + Math.random();
 
-      setTimeout(showplots, 1000);
+	  setTimeout(showplots, 1000);
       }
 
-      function cli0() {
-          window.location.href = "waterfall?bank=$(bank)&window=0";
+      function showwaterfall(win) {
+          window.location.href = "waterfall?bank=$(bank)&window=" + win;
       }
-      function cli1() {
-          window.location.href = "waterfall?bank=$(bank)&window=1";
-      }
-      function cli2() {
-          window.location.href = "waterfall?bank=$(bank)&window=2";
-      }
-      function cli3() {
-          window.location.href = "waterfall?bank=$(bank)&window=3";
-      }
-      function cli4() {
-          window.location.href = "waterfall?bank=$(bank)&window=4";
-      }
-      function cli5() {
-          window.location.href = "waterfall?bank=$(bank)&window=5";
-      }
-      function cli6() {
-          window.location.href = "waterfall?bank=$(bank)&window=6";
-      }
-      function cli7() {
-          window.location.href = "waterfall?bank=$(bank)&window=7";
+
+      function showbank(bank) {
+          window.location.href = "windows?bank=" + bank;
       }
 
       function allbanks() {
@@ -100,31 +83,50 @@ $def with (bank)
       }
     </script>
   </head>
-  <body onload="showplots()">
+  <body onload="showplots()" style="font-size:12px">
     <button class="btn" type="button" onclick="allbanks()">All banks</button>
-    <div style="position:absolute; top:40px; left:0px">
-      <canvas id="canvas0" width="600" height="200" onclick="cli0()"></canvas>
+    <button class="btn" type="button" onclick="showbank('A')">A</button>
+    <button class="btn" type="button" onclick="showbank('B')">B</button>
+    <button class="btn" type="button" onclick="showbank('C')">C</button>
+    <button class="btn" type="button" onclick="showbank('D')">D</button>
+    <button class="btn" type="button" onclick="showbank('E')">E</button>
+    <button class="btn" type="button" onclick="showbank('F')">F</button>
+    <button class="btn" type="button" onclick="showbank('G')">G</button>
+    <button class="btn" type="button" onclick="showbank('H')">H</button>
+    <p>Click plots to see dynamic spectra.</p>
+    <!--br/>
+    Waterfall plots:
+    <button class="btn" type="button" onclick="showwaterfall('A',0)">A0</button>
+    <button class="btn" type="button" onclick="showwaterfall('A',1)">A1</button>
+    <button class="btn" type="button" onclick="showwaterfall('A',2)">A2</button>
+    <button class="btn" type="button" onclick="showwaterfall('A',3)">A3</button>
+    <button class="btn" type="button" onclick="showwaterfall('A',4)">A4</button>
+    <button class="btn" type="button" onclick="showwaterfall('A',5)">A5</button>
+    <button class="btn" type="button" onclick="showwaterfall('A',6)">A6</button>
+    <button class="btn" type="button" onclick="showwaterfall('A',7)">A7</button-->
+    <div style="position:absolute; top:70px; left:0px">
+      <canvas id="canvas0" width="600" height="200" onclick="showwaterfall(0)"></canvas>
     </div>
-    <div style="position:absolute; top:240px; left:0px">
-      <canvas id="canvas1" width="600" height="200" onclick="cli1()"></canvas>
+    <div style="position:absolute; top:270px; left:0px">
+      <canvas id="canvas1" width="600" height="200" onclick="showwaterfall(1)"></canvas>
     </div>
-    <div style="position:absolute; top:440px; left:0px">
-      <canvas id="canvas2" width="600" height="200" onclick="cli2()"></canvas>
+    <div style="position:absolute; top:470px; left:0px">
+      <canvas id="canvas2" width="600" height="200" onclick="showwaterfall(2)"></canvas>
     </div>
-    <div style="position:absolute; top:640px; left:0px">
-      <canvas id="canvas3" width="600" height="200" onclick="cli3()"></canvas>
+    <div style="position:absolute; top:670px; left:0px">
+      <canvas id="canvas3" width="600" height="200" onclick="showwaterfall(3)"></canvas>
     </div>
-    <div style="position:absolute; top:40px; left:600px">
-      <canvas id="canvas4" width="600" height="200" onclick="cli4()"></canvas>
+    <div style="position:absolute; top:70px; left:600px">
+      <canvas id="canvas4" width="600" height="200" onclick="showwaterfall(4)"></canvas>
     </div>
-    <div style="position:absolute; top:240px; left:600px">
-      <canvas id="canvas5" width="600" height="200" onclick="cli5()"></canvas>
+    <div style="position:absolute; top:270px; left:600px">
+      <canvas id="canvas5" width="600" height="200" onclick="showwaterfall(5)"></canvas>
     </div>
-    <div style="position:absolute; top:440px; left:600px">
-      <canvas id="canvas6" width="600" height="200" onclick="cli6()"></canvas>
+    <div style="position:absolute; top:470px; left:600px">
+      <canvas id="canvas6" width="600" height="200" onclick="showwaterfall(6)"></canvas>
     </div>
-    <div style="position:absolute; top:640px; left:600px">
-      <canvas id="canvas7" width="600" height="200" onclick="cli7()"></canvas>
+    <div style="position:absolute; top:670px; left:600px">
+      <canvas id="canvas7" width="600" height="200" onclick="showwaterfall(7)"></canvas>
     </div>
   </body>
 </html>

@@ -6,8 +6,6 @@ import signal
 import logging
 import threading
 
-from makeplots import Plots
-
 urls = ('/', 'Banks', '/windows', 'Windows', '/waterfall', 'Waterfall' )
 render = web.template.render('templates/', cache=False)
 app = web.application(urls, globals())

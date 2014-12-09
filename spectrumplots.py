@@ -129,6 +129,8 @@ def main(bank):
             '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
             '9 size 600,200')
     gwindow('set data style lines')
+
+    prevscan, prevint = None, None
     while True:
         value, request_pending = get_value(context, bank, poller, state_key,
                                            directory_socket, data_socket,
@@ -136,41 +138,57 @@ def main(bank):
         if value:
             logging.debug('{} = {}'.format(state_key,value))
 
-        gbank.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
         gbank('set out "static/{}.png"'.format(bank))
-        if value == 'Running':
+
+        if ALWAYS_UPDATE: ready_for_value = True
+        else: ready_for_value = (value == 'Running')
+
+        if ready_for_value:
             value, request_pending = get_value(context, bank, poller, data_key,
                                                directory_socket, data_socket,
                                                request_pending, directory_url)
             if value:
-                spec = value[3]
-                logging.debug('{} {} {} {}'.format(value[0],value[1],value[2],value[3].shape))
+                proj, scan, integration, spec = value
+                logging.debug('{} {} {} {}'.format(proj, scan, integration, spec.shape))
 
-                #spec = spec.reshape((8,64,2))
-                if len(spec) == 1:
-                    gbank('unset key')
-                else:
-                    gbank('set key default')
-
-                ds = []
-                for win,ss in enumerate(spec):
-                    dd = Gnuplot.Data(ss, title='{}'.format(win))
-                    ds.append(dd)
-                gbank.plot(*ds)
-
-                for window in range(8):
-                    gwindow.title('Spectrometer {} '
-                             'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
-                    gwindow('set out "static/{}{}.png"'.format(bank, window))
-                    if window < len(spec):
-                        gwindow('set key default')
-                        gwindow.plot(spec[window])
+                if (prevscan,prevint) != (scan,integration) or ALWAYS_UPDATE:
+                    prevscan = scan
+                    prevint = integration
+                    if len(spec) == 1:
+                        gbank('unset key')
                     else:
-                        blank_plot(gwindow)
+                        gbank('set key default')
+
+                    gbank.title('Spec. {} '
+                                  'Scan {} '
+                                  'Int. {} {}'.format(bank, scan, 
+                                                      integration,
+                                                      strftime('  %Y-%m-%d %H:%M:%S')))
+    
+                    ds = []
+                    for win,ss in enumerate(spec):
+                        dd = Gnuplot.Data(ss, title='{}'.format(win))
+                        ds.append(dd)
+                    gbank.plot(*ds)
+
+                    for window in range(8):
+                        gwindow.title('Spec. {} Win. {} '
+                                      'Scan {} '
+                                      'Int. {} {}'.format(bank, window, scan, 
+                                                          integration,
+                                                          strftime('  %Y-%m-%d %H:%M:%S')))
+                        gwindow('set out "static/{}{}.png"'.format(bank, window))
+                        if window < len(spec):
+                            gwindow('set key default')
+                            gwindow.plot(spec[window])
+                        else:
+                            blank_plot(gwindow)
             else:
+                gbank.title('Spec. {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
                 blank_plot(gbank)
 
         else:
+            gbank.title('Spec. {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
             blank_plot(gbank)
             for window in range(8):
                 gwindow.title('Spectrometer {} '
@@ -179,7 +197,7 @@ def main(bank):
                 blank_plot(gwindow)
 
         # pace the data requests    
-        sleep(1)
+        sleep(UPDATE_RATE)
 
 def get_value(context, bank, poller, key, directory_socket,
               data_socket, request_pending, directory_url):
@@ -199,7 +217,8 @@ def get_value(context, bank, poller, key, directory_socket,
 
     # handle directory service message
     if directory_socket in socks and socks[directory_socket] == zmq.POLLIN:
-        handle_publisher(context, directory_url, bank, data_socket)
+        key, payload = directory_socket.recv_multipart()
+        handle_publisher(context, directory_url, bank, data_socket, payload)
         return None, None
 
     # handle data response
@@ -223,7 +242,7 @@ def open_a_socket(context, url, service_type=zmq.REQ):
     socket.connect(url)
     return socket
 
-def handle_publisher(context, directory_url, bank, data_socket):
+def handle_publisher(context, directory_url, bank, data_socket, payload):
     # directory service, new interface. If it's ours,
     # need to reconnect.
     reqb = PBRequestService()
@@ -275,7 +294,7 @@ def handle_data(sock, key):
 
     if el == 1:  # Got an error
         if rl[0] == "E_NOKEY":
-            logging.error("No key/value pair found: {}".format(key))
+            logging.info("No key/value pair found: {}".format(key))
             return None
     elif el > 1:
         # first element is the key
@@ -300,8 +319,8 @@ def handle_data(sock, key):
             full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
             # estimate the number of polarizations used to grab the first
             # of each subband
-            n_skip_pols = (n_samplers/n_subbands)
-            logging.debug('polarization estimate: {}'.format(n_skip_pols))
+            n_pols = (n_samplers/n_subbands)
+            logging.debug('polarization estimate: {}'.format(n_pols))
             if n_sig_states == 1:
                 # assumes no SIG switching
                 # average the cal-on/off pairs
@@ -311,18 +330,18 @@ def handle_data(sock, key):
             else:
                 logging.debug('SIG SWITCHING')
                 pass
-            
+
             # get just the first spectrum
             arr = full_res_spectra[0]
-            # get every n_skip_pols spectrum and subband
-            less_spectra = arr[::n_skip_pols]
-            subbands = df.subband[::n_skip_pols]
+            # get every n_pols spectrum and subband
+            less_spectra = arr[::n_pols]
+            subbands = df.subband[::n_pols]
             
             try:
                 sky_freqs = sky_frequencies(less_spectra, subbands, df)
             except:
-                logging.warning('Frequency information unavailable.  '
-                                'Substituting with dummy freq. data.')
+                logging.debug('Frequency information unavailable.  '
+                              'Substituting with dummy freq. data.')
                 sky_freqs = make_dummy_frequencies(n_subbands)
             
             # rebin each of the spectra
