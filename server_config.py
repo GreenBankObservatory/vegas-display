@@ -1,12 +1,19 @@
-import pdb
-from random import randint
-import numpy as np
+"""
+Global options for creating plots and running display server.
+"""
 
-NCHANS = 512  # number of channels for client to display
+import logging
+
 ALWAYS_UPDATE = False
 
 # waterfall plot dimensions
 NROWS = 100
-NCOLS = 512
+NCHANS = 512  # number of channels for client to display
 
 UPDATE_RATE = 1 # seconds
+
+# configure the logger
+log_level = {"err"  : logging.ERROR,
+             "warn" : logging.WARNING,
+             "info" : logging.INFO,
+             "debug": logging.DEBUG}
