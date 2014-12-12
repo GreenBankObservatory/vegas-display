@@ -5,10 +5,14 @@ import argparse
 import signal
 import logging
 import threading
+import os
+
+web.config.debug = False
 
 urls = ('/', 'Banks', '/windows', 'Windows', '/waterfall', 'Waterfall' )
-render = web.template.render('templates/', cache=False)
-app = web.application(urls, globals())
+template_dir = os.path.abspath(os.path.dirname(__file__)) + '/templates'
+render = web.template.render(template_dir, cache=False)
+application = web.application(urls, globals()).wsgifunc()
 
 # configure the logger
 log_level = {"err"  : logging.ERROR,
@@ -44,7 +48,7 @@ if __name__ == "__main__":
     def sig_handler(sig, frame):
         logging.warning("Caught signal {}".format(sig))
         logging.warning("Shutting down server...")
-        app.stop()
+        application.stop()
     
     # signal register
     signal.signal(signal.SIGINT, sig_handler)
@@ -54,4 +58,4 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("port", help="port number to use on the server", type=int)
     args = parser.parse_args()
-    app.run()
+    application.run()
