@@ -14,6 +14,7 @@ import DataStreamUtils as dsutils
 
 import server_config as cfg
 import read_file_data as filedata
+import Gnuplot
 
 def _get_tcp_url(urls):
     for u in urls:
@@ -71,46 +72,94 @@ def _sky_frequencies(spectra, subbands, df):
 
     return display_sky_frequencies
 
-def blank_plot(g):
+def blank_window_plot(bank, window, state):
+    g = Gnuplot.Gnuplot(persist=0)
+    g.xlabel('GHz')
+    g.ylabel('counts')
+    g('set term png enhanced font '
+      '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
+      '9 size 600,200')
+    g('set data style lines')
+    g.title('Spectrometer {} '
+            'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
+    g('set out "static/{}{}.png"'.format(bank, window))
     g('unset key')
+    g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
+    g.plot('[][0:1] 2')
+
+def blank_bank_plot(bank, state):
+    g = Gnuplot.Gnuplot(persist=0)
+    g.xlabel('GHz')
+    g.ylabel('counts')
+    g('set term png enhanced font '
+      '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
+      '9 size 600,200')
+    g('set data style lines')
+    g.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
+    g('set out "static/{}.png"'.format(bank))
+    g('unset key')
+    g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
     g.plot('[][0:1] 2')
 
 def get_value(context, bank, poller, key, directory_socket,
-              data_socket, request_pending, vegas_snap_url):
+              vegasdata, request_pending):
+
+    data_socket = vegasdata['socket']
+
     # This is the REQ wrinkle: only send a request if the last
     # one was serviced. We might find ourselves back here if the
     # directory message was received instead of the data request,
     # in which case we must not make another request. In this
     # case, skip and drop into the poll to wait for the data.
     if not request_pending:
-        data_socket.send(key)
+        logging.debug('requesting: {} from {}'.format(key, vegasdata))
+        data_socket.send(key, zmq.NOBLOCK)
         request_pending = True
 
     # this will block. May unblock if request is serviced, *or*
     # if directory service message is received.
+    logging.debug('poller.sockets', poller.sockets)
     socks = dict(poller.poll())
     logging.debug('{} socks {}'.format(strftime('%Y/%m/%d %H:%M:%S'), socks))
 
     # handle directory service message
-    if directory_socket in socks and socks[directory_socket] == zmq.POLLIN:
-        key, payload = directory_socket.recv_multipart()
-        _handle_publisher(context, bank, vegas_snap_url, data_socket, payload)
-        return None, None
+    if directory_socket in socks:
+        logging.debug('DIRECTORY SOCKET message')
+        if socks[directory_socket] == zmq.POLLIN:
+            logging.debug('POLLIN')
+            key, payload = directory_socket.recv_multipart()
+            vegasdata, value = _handle_snapshoter(context, bank, vegasdata, payload)
+            if value=="ManagerRestart":
+                poller.unregister(data_socket)
+                poller.register(vegasdata['socket'], zmq.POLLIN)
+                request_pending = False
+
+            logging.debug('get_value returning {}, {}, {}'.format(value, request_pending, vegasdata))
+            return value, request_pending, vegasdata
+        else:
+            logging.debug('ERROR')
+            return "Error", request_pending, vegasdata           
 
     # handle data response
-    if data_socket in socks and socks[data_socket] == zmq.POLLIN:
-        data = _handle_data(data_socket, key)
+    if data_socket in socks:
+        logging.debug('DATA SOCKET message')
+        if socks[data_socket] == zmq.POLLIN:
+            logging.debug('POLLIN')
+            data = _handle_data(data_socket, key)
+            if data:
+                if key.endswith('Data'):
+                    value = data
+                else: # state
+                    value = data.val_struct[0].val_string[0]
+            else:
+                value = None
 
-        if data:
-            if key.endswith('Data'):
-                value = data
-            else: # state
-                value = data.val_struct[0].val_string[0]
+            # indicate we can send a new request next time through loop.
+            request_pending = False
+            return value, request_pending, vegasdata
         else:
-            value = None
-
-        # indicate we can send a new request next time through loop.
-        return value, False
+            logging.debug('ERROR')
+            return "Error", request_pending, vegasdata           
     
 def open_a_socket(context, url, service_type=zmq.REQ):
     socket = context.socket(service_type) # zmq.REQ || zmq.SUB
@@ -118,7 +167,7 @@ def open_a_socket(context, url, service_type=zmq.REQ):
     socket.connect(url)
     return socket
 
-def _handle_publisher(context, bank, vegas_snap_url, data_socket, payload):
+def _handle_snapshoter(context, bank, vegasdata, payload):
     # directory service, new interface. If it's ours,
     # need to reconnect.
     reqb = request_protobuf.PBRequestService()
@@ -132,33 +181,36 @@ def _handle_publisher(context, bank, vegas_snap_url, data_socket, payload):
     # URL will be different, so we need to
     # resubscribe. Check for the snapshot interface.
     # If not, we might respond to a message for the
-    # wrong interface, in which case 'vegas_snap_url' will
+    # wrong interface, in which case 'vegasdata['url']' will
     # be empty and the connection attempt below will
     # fail.
-    logging.warning('{} {} {}'.format(reqb.major, reqb.minor, reqb.publish_url))
+    logging.warning('SNAPSHOT {} {} {} interface {}'.format(reqb.major, reqb.minor,
+                                                             reqb.snapshot_url[0], reqb.interface))
 
     major, minor = "VEGAS", "Bank{}Mgr".format(bank)
     if (reqb.major == major and
         reqb.minor == minor and
         reqb.interface == dsutils.SERV_SNAPSHOT):
 
-        new_url = _get_tcp_url(reqb.publish_url)
+        new_url = _get_tcp_url(reqb.snapshot_url)
 
-        if vegas_snap_url != new_url:
+        if vegasdata['url'] != new_url:
             restart_msg = "Manager restarted: %s.%s, %s, %s" % \
                           (reqb.major, reqb.minor, reqb.interface, new_url)
             logging.warning('{} {}'.format(datetime.now(), restart_msg))
 
-            vegas_snap_url = new_url
+            vegasdata['url'] = new_url
 
-            if vegas_snap_url:
-                logging.warning("new vegas_snap_url: {}".format(vegas_snap_url))
-                data_socket.close()
-                data_socket = open_a_socket(context, vegas_snap_url, zmq.REQ)
+            if vegasdata['url']:
+                logging.warning("new vegasdata['url']: {}".format(vegasdata['url']))
+                vegasdata['socket'].close()
+                vegasdata['socket'] = open_a_socket(context, vegasdata['url'], zmq.REQ)
+                logging.debug('vegasdata', vegasdata)
+                return vegasdata, "ManagerRestart"
             else:
                 logging.warning("Manager {}.{} subscription "
                                 "URL is empty! exiting...".format(major, minor))
-                return
+    return vegasdata, "NoRestart"
     
 
 def _handle_data(sock, key):

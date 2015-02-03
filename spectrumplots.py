@@ -1,5 +1,6 @@
 #! /usr/bin/env python
-
+import traceback
+import sys
 from time import strftime, sleep
 import logging
 import argparse
@@ -19,34 +20,38 @@ def main(bank):
     context   = zmq.Context(1)
 
     # get URLs
-    
+    directory = {'url' : None, 'event_url' : None, 'socket' : None}
+    vegasdata = {'url' : None, 'socket' : None}
     # directory request(device services) and publish(new interfaces) URLs
-    _, directory_url, directory_event_url = dsutils.get_directory_endpoints()
+    _, directory['url'], directory['event_url'] = dsutils.get_directory_endpoints()
 
     # VEGAS BankA snapshot URLs
-    vegas_snap_url,_,_ = dsutils.get_service_endpoints(context,
-                                                       directory_url,mjr, mnr,
-                                                       dsutils.SERV_SNAPSHOT) 
+    vegasdata['url'],_,_ = dsutils.get_service_endpoints(context,
+                                                         directory['url'],mjr, mnr,
+                                                         dsutils.SERV_SNAPSHOT) 
 
-    logging.info('directory (request/services)        url: {}'.format(directory_url))
-    logging.info('directory (publish/newinterfaces)   url: {}'.format(directory_event_url))
-    logging.info('vegas snapshot                      url: {}'.format(vegas_snap_url))
+    logging.info('directory (request/services)        url: {}'.format(directory['url']))
+    logging.info('directory (publish/newinterfaces)   url: {}'.format(directory['event_url']))
+    logging.info('vegas snapshot                      url: {}'.format(vegasdata['url']))
 
     # connect sockets
-    directory_socket = utils.open_a_socket(context, directory_event_url, zmq.SUB)
-    directory_socket.setsockopt(zmq.SUBSCRIBE, "YgorDirectory:NEW_INTERFACE")
+    directory['socket'] = utils.open_a_socket(context, directory['event_url'], zmq.SUB)
+    directory['socket'].setsockopt(zmq.SUBSCRIBE, "YgorDirectory:NEW_INTERFACE")
 
-    data_socket = utils.open_a_socket(context, vegas_snap_url, zmq.REQ)
+    vegasdata['socket'] = utils.open_a_socket(context, vegasdata['url'], zmq.REQ)
 
-    logging.info('directory socket: {}'.format(directory_socket))
-    logging.info('snap socket     : {}'.format(data_socket))
+    logging.info('directory socket: {}'.format(directory['socket']))
+    logging.info('snap socket     : {}'.format(vegasdata['socket']))
 
     # create poller to watch sockets
     poller = zmq.Poller()
-    poller.register(directory_socket, zmq.POLLIN)
-    poller.register(data_socket, zmq.POLLIN)
+    poller.register(directory['socket'], zmq.POLLIN)
+    poller.register(vegasdata['socket'], zmq.POLLIN)
+
+    prevscan, prevint = None, None
 
     request_pending = False
+
     gbank = Gnuplot.Gnuplot(persist=0)
     gbank.xlabel('GHz')
     gbank.ylabel('counts')
@@ -54,6 +59,7 @@ def main(bank):
           '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
           '9 size 600,200')
     gbank('set data style lines')
+
     gwindow = Gnuplot.Gnuplot(persist=0)
     gwindow.xlabel('GHz')
     gwindow.ylabel('counts')
@@ -62,74 +68,93 @@ def main(bank):
             '9 size 600,200')
     gwindow('set data style lines')
 
-    prevscan, prevint = None, None
     while True:
-        value, request_pending = utils.get_value(context, bank, poller, state_key,
-                                                 directory_socket, data_socket,
-                                                 request_pending, vegas_snap_url)
-        if value:
-            logging.debug('{} = {}'.format(state_key, value))
+        try:
+            state, request_pending, vegasdata = utils.get_value(context, bank, poller, state_key,
+                                                                directory['socket'], vegasdata,
+                                                                request_pending)
 
-        gbank('set out "static/{}.png"'.format(bank))
+            # if the manager was restarted, try again to get the state
+            if state == "ManagerRestart":
+                continue
 
-        if cfg.ALWAYS_UPDATE: ready_for_value = True
-        else: ready_for_value = (value == 'Running')
+            if state:
+                logging.debug('{} = {}'.format(state_key, state))
 
-        if ready_for_value:
-            value, request_pending = utils.get_value(context, bank, poller, data_key,
-                                                     directory_socket, data_socket,
-                                                     request_pending, vegas_snap_url)
-            if value:
-                proj, scan, integration, spec = value
-                logging.debug('{} {} {} {}'.format(proj, scan, integration, spec.shape))
+            gbank('set out "static/{}.png"'.format(bank))
 
-                if (prevscan,prevint) != (scan,integration) or cfg.ALWAYS_UPDATE:
-                    prevscan = scan
-                    prevint = integration
-                    if len(spec) == 1:
-                        gbank('unset key')
-                    else:
-                        gbank('set key default')
+            if cfg.ALWAYS_UPDATE: ready_for_value = True
+            else: ready_for_value = (state == 'Running')
+            
+            if ready_for_value:
+                value, request_pending, vegasdata = utils.get_value(context, bank, poller, data_key,
+                                                                    directory['socket'], vegasdata,
+                                                                    request_pending)
 
-                    gbank.title('Spec. {} '
-                                  'Scan {} '
-                                  'Int. {} {}'.format(bank, scan, 
-                                                      integration,
-                                                      strftime('  %Y-%m-%d %H:%M:%S')))
-    
-                    ds = []
-                    for win,ss in enumerate(spec):
-                        dd = Gnuplot.Data(ss, title='{}'.format(win))
-                        ds.append(dd)
-                    gbank.plot(*ds)
+                # if the manager was restarted, try again to get the state
+                if value == "ManagerRestart":
+                    continue
 
-                    for window in range(8):
-                        gwindow.title('Spec. {} Win. {} '
+                if value:
+                    proj, scan, integration, spec = value
+                    logging.debug('{} {} {} {}'.format(proj, scan, integration, spec.shape))
+
+                    if (prevscan,prevint) != (scan,integration) or cfg.ALWAYS_UPDATE:
+                        prevscan = scan
+                        prevint = integration
+                        if len(spec) == 1:
+                            gbank('unset key')
+                        else:
+                            gbank('set key default')
+
+                        gbank.title('Spec. {} '
                                       'Scan {} '
-                                      'Int. {} {}'.format(bank, window, scan, 
+                                      'Int. {} {}'.format(bank, scan, 
                                                           integration,
                                                           strftime('  %Y-%m-%d %H:%M:%S')))
-                        gwindow('set out "static/{}{}.png"'.format(bank, window))
-                        if window < len(spec):
-                            gwindow('set key default')
-                            gwindow.plot(spec[window])
-                        else:
-                            utils.blank_plot(gwindow)
+                        ds = []
+                        for win,ss in enumerate(spec):
+                            dd = Gnuplot.Data(ss, title='{}'.format(win))
+                            ds.append(dd)
+                        gbank.plot(*ds)
+
+                        for window in range(8):
+                            gwindow.title('Spec. {} Win. {} '
+                                          'Scan {} '
+                                          'Int. {} {}'.format(bank, window, scan, 
+                                                              integration,
+                                                              strftime('  %Y-%m-%d %H:%M:%S')))
+                            gwindow('set out "static/{}{}.png"'.format(bank, window))
+                            if window < len(spec):
+                                gwindow('set key default')
+                                gwindow.plot(spec[window])
+                                gwindow.clear()
+                            else:
+                                utils.blank_window_plot(bank, window, state)
+                else:
+                    utils.blank_bank_plot(bank, state)
             else:
-                gbank.title('Spec. {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
-                utils.blank_plot(gbank)
+                utils.blank_bank_plot(bank, state)
+                for window in range(8):
+                    utils.blank_window_plot(bank, window, state)
 
-        else:
-            gbank.title('Spec. {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
-            utils.blank_plot(gbank)
-            for window in range(8):
-                gwindow.title('Spectrometer {} '
-                              'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
-                gwindow('set out "static/{}{}.png"'.format(bank, window))
-                utils.blank_plot(gwindow)
+            # pace the data requests    
+            sleep(cfg.UPDATE_RATE)
 
-        # pace the data requests    
-        sleep(cfg.UPDATE_RATE)
+        except KeyboardInterrupt:
+            directory['socket'].close()            
+            vegasdata['socket'].close()
+            context.term()
+            sys.exit(1)
+        except TypeError:
+            print 'TypeError'
+            print (context, bank, poller, state_key, directory, vegasdata, request_pending)
+            print [type(x) for x in
+                   (context, bank, poller, state_key, directory, vegasdata, request_pending)]
+            sys.exit(2)
+        except:
+            print "Error"
+            sys.exit(3)
 
 
 if __name__ == '__main__':
@@ -145,4 +170,6 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=cfg.log_level[args.v])
+    
     main(args.bank)
+        
