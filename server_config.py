@@ -10,7 +10,7 @@ ALWAYS_UPDATE = False
 NROWS = 100
 NCHANS = 512  # number of channels for client to display
 
-UPDATE_RATE = 1 # seconds
+UPDATE_RATE = 10 # seconds
 
 # configure the logger
 log_level = {"err"  : logging.ERROR,
