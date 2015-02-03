@@ -9,6 +9,18 @@
           ctx.drawImage(image, 0, 0);
       }
 
+      function initbuttons() {
+          var xx = document.querySelectorAll(".btn");
+          for (var i = 0; i < xx.length; i++) {
+              if (xx[i].innerHTML=="All banks") {
+                  xx[i].style.background="#3cb0fd";
+              } else {
+                  xx[i].style.background="#ffffff";
+              }
+          }
+          showplots();
+      }
+
       function showplots(){
 	  var canvas0 = document.getElementById('canvasA');
 	  var canvas1 = document.getElementById('canvasB');
@@ -69,7 +81,7 @@
 	  image5.src = 'static/F.png?=' + Math.random();
 	  image6.src = 'static/G.png?=' + Math.random();
 	  image7.src = 'static/H.png?=' + Math.random();
-          setTimeout(showplots, 1000);
+          setTimeout(showplots, 1000*2); // milliseconds
       }
 
       function showbank(bank) {
@@ -84,7 +96,7 @@
       }
     </script>
   </head>
-  <body onload="showplots()">
+  <body onload="initbuttons()">
     <button class="btn" type="button" onclick="allbanks()">All banks</button>
     <button class="btn" type="button" onclick="showbank('A')">A</button>
     <button class="btn" type="button" onclick="showbank('B')">B</button>
