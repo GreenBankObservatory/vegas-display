@@ -1,3 +1,7 @@
 #!/bin/bash
 
-pkill -f "./waterfall.py"
+
+fullpath=`readlink -f $0`
+pathdir=`dirname $fullpath`
+
+pkill -f "${pathdir}/waterfall.py"

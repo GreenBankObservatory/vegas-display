@@ -1,8 +1,11 @@
 #!/bin/bash
 
-./stop_spectrum_plots.sh
+fullpath=`readlink -f $0`
+pathdir=`dirname $fullpath`
+
+${pathdir}/stop_spectrum_plots.sh
 
 for d in a b c d e f g h
 do
-./spectrumplots.py ${d} -v warn &
+${pathdir}/spectrumplots.py ${d} -v warn &
 done
