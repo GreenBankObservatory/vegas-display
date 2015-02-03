@@ -7,12 +7,15 @@ import logging
 import threading
 import os
 
-web.config.debug = False
+# Uncomment the next line for PRODUCTION
+# Also, see the application line below with wsgifunc()
+#web.config.debug = False
 
 urls = ('/', 'Banks', '/windows', 'Windows', '/waterfall', 'Waterfall' )
 template_dir = os.path.abspath(os.path.dirname(__file__)) + '/templates'
 render = web.template.render(template_dir, cache=False)
-application = web.application(urls, globals()).wsgifunc()
+# Uncomment .wsgifunc() in the next line for PRODUCTION
+application = web.application(urls, globals())#.wsgifunc()
 
 # configure the logger
 log_level = {"err"  : logging.ERROR,
