@@ -3,6 +3,7 @@ from time import strftime
 from datetime import datetime
 import math
 import array
+import os
 
 import numpy as np
 import zmq
@@ -15,6 +16,8 @@ import DataStreamUtils as dsutils
 import server_config as cfg
 import read_file_data as filedata
 import Gnuplot
+
+LCLDIR = os.path.dirname(os.path.abspath(__file__))
 
 def _get_tcp_url(urls):
     for u in urls:
@@ -82,7 +85,7 @@ def blank_window_plot(bank, window, state):
     g('set data style lines')
     g.title('Spectrometer {} '
             'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
-    g('set out "static/{}{}.png"'.format(bank, window))
+    g('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
     g('unset key')
     g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
     g.plot('[][0:1] 2')
@@ -96,7 +99,7 @@ def blank_bank_plot(bank, state):
       '9 size 600,200')
     g('set data style lines')
     g.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
-    g('set out "static/{}.png"'.format(bank))
+    g('set out "{}/static/{}.png"'.format(LCLDIR, bank))
     g('unset key')
     g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
     g.plot('[][0:1] 2')
@@ -184,8 +187,7 @@ def _handle_snapshoter(context, bank, vegasdata, payload):
     # wrong interface, in which case 'vegasdata['url']' will
     # be empty and the connection attempt below will
     # fail.
-    logging.warning('SNAPSHOT {} {} {} interface {}'.format(reqb.major, reqb.minor,
-                                                             reqb.snapshot_url[0], reqb.interface))
+    logging.warning('SNAPSHOT {}'.format(reqb))
 
     major, minor = "VEGAS", "Bank{}Mgr".format(bank)
     if (reqb.major == major and
@@ -239,6 +241,20 @@ def _handle_data(sock, key):
             n_sig_states = len(set(df.sig_ref_state))
             n_cal_states = len(set(df.cal_state))
             n_subbands = len(set(df.subband))
+
+            problem = False
+            if n_subbands < 1:
+                logging.error("Number of sub-bands is: {}".format(n_subbands))
+                problem = True
+            if n_sig_states < 1:
+                logging.error("Number of sig switching stats is: {}".format(n_sig_states))
+                problem = True
+            if n_cal_states < 1:
+                logging.error("Number of cal states is: {}".format(n_cal_states))
+                problem = True
+            if problem:
+                return None
+
             n_chans, n_samplers, n_states = df.data_dims
             full_res_spectra = np.array(ff)
             

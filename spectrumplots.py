@@ -1,9 +1,12 @@
 #! /usr/bin/env python
+
 import traceback
 import sys
 from time import strftime, sleep
 import logging
 import argparse
+import sys
+import os
 
 import zmq
 import Gnuplot
@@ -12,6 +15,8 @@ import DataStreamUtils as dsutils
 
 import server_config as cfg
 import utils
+
+LCLDIR = os.path.dirname(os.path.abspath(__file__))
 
 def main(bank):
     mjr, mnr = "VEGAS", "Bank{}Mgr".format(bank)
@@ -81,7 +86,7 @@ def main(bank):
             if state:
                 logging.debug('{} = {}'.format(state_key, state))
 
-            gbank('set out "static/{}.png"'.format(bank))
+            gbank('set out "{}/static/{}.png"'.format(LCLDIR, bank))
 
             if cfg.ALWAYS_UPDATE: ready_for_value = True
             else: ready_for_value = (state == 'Running')
@@ -124,7 +129,7 @@ def main(bank):
                                           'Int. {} {}'.format(bank, window, scan, 
                                                               integration,
                                                               strftime('  %Y-%m-%d %H:%M:%S')))
-                            gwindow('set out "static/{}{}.png"'.format(bank, window))
+                            gwindow('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
                             if window < len(spec):
                                 gwindow('set key default')
                                 gwindow.plot(spec[window])
@@ -152,8 +157,9 @@ def main(bank):
             print [type(x) for x in
                    (context, bank, poller, state_key, directory, vegasdata, request_pending)]
             sys.exit(2)
-        except:
-            print "Error"
+        except Exception, err:
+            print "Error", traceback.format_exception(*sys.exc_info())
+            import pdb; pdb.set_trace()
             sys.exit(3)
 
 
