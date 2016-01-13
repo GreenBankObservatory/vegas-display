@@ -9,25 +9,27 @@ import os
 
 # Uncomment the next line for PRODUCTION
 # Also, see the application line below with wsgifunc()
-#web.config.debug = False
+# web.config.debug = False
 
-urls = ('/', 'Banks', '/windows', 'Windows', '/waterfall', 'Waterfall' )
+urls = ('/', 'Banks', '/windows', 'Windows', '/waterfall', 'Waterfall')
 template_dir = os.path.abspath(os.path.dirname(__file__)) + '/templates'
 render = web.template.render(template_dir, cache=False)
 # Uncomment .wsgifunc() in the next line for PRODUCTION
-application = web.application(urls, globals())#.wsgifunc()
+application = web.application(urls, globals())  # .wsgifunc()
 
 # configure the logger
-log_level = {"err"  : logging.ERROR,
-             "warn" : logging.WARNING,
-             "info" : logging.INFO,
+log_level = {"err":   logging.ERROR,
+             "warn":  logging.WARNING,
+             "info":  logging.INFO,
              "debug": logging.DEBUG}
+
 
 class Banks:
     def GET(self):
         print 'banks request!!!'
         web.header('Content-Type', 'text/html')
         return render.banks()
+
 
 class Windows:
     def GET(self):
@@ -36,6 +38,7 @@ class Windows:
         winp = web.input()
         print winp
         return render.windows(winp.bank)
+
 
 class Waterfall:
     def GET(self):
@@ -48,7 +51,7 @@ class Waterfall:
 if __name__ == "__main__":
 
     # signal handler
-    def sig_handler(sig, frame):
+    def sig_handler(sig, _):
         logging.warning("Caught signal {}".format(sig))
         logging.warning("Shutting down server...")
         application.stop()

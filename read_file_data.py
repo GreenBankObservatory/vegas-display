@@ -1,32 +1,34 @@
 import pyfits
 import sys
-from server_config import *
 import logging
+
 
 # define input files
 def filenames(projid, scannum):
     project_directory = '/home/gbtdata/{proj}/'.format(proj=projid)
     scanlog_file = project_directory + 'ScanLog.fits'
     scanlog = pyfits.open(scanlog_file)
-    project_files = scanlog['SCANLOG'].data[scanlog['SCANLOG'].data['SCAN']==scannum]['FILEPATH']
-    LO_FILENAME = '/home/gbtdata/' + [x for x in project_files if 'LO1A' in x][0]
-    IF_FILENAME = '/home/gbtdata/' + [x for x in project_files if 'IF' in x][0]
-    return LO_FILENAME, IF_FILENAME
+    project_files = scanlog['SCANLOG'].data[scanlog['SCANLOG'].data['SCAN'] == scannum]['FILEPATH']
+    lo_filename = '/home/gbtdata/' + [x for x in project_files if 'LO1A' in x][0]
+    if_filename = '/home/gbtdata/' + [x for x in project_files if 'IF' in x][0]
+    return lo_filename, if_filename
 
-def lofreq(LO_FILENAME):
-    lo =pyfits.open(LO_FILENAME)
-    LO1FREQ = lo['LO1TBL'].data['LO1FREQ'][0]
-    LO1 = LO1FREQ
+
+def lofreq(lo_filename):
+    lo = pyfits.open(lo_filename)
+    local_oscillator_freq = lo['LO1TBL'].data['LO1FREQ'][0]
+    local_oscillator1 = local_oscillator_freq
     lo.close()
-    return LO1
+    return local_oscillator1
 
-def ifinfo(IF_FILENAME):
-    iffile = pyfits.open(IF_FILENAME)
+
+def ifinfo(if_filename):
+    iffile = pyfits.open(if_filename)
     # add SFF_SIDEBAND, SFF_MULTIPLIER, SFF_OFFSET to if_table structure
     # using (BACKEND,PORT,BANK) as the key
     if_table = {}
     for x in iffile['IF'].data:
-        key = (x['BACKEND'],x['PORT'],x['BANK'])
+        key = (x['BACKEND'], x['PORT'], x['BANK'])
         if x['BACKEND'] == 'VEGAS':
             if_table[key] = (x['SFF_SIDEBAND'],
                              x['SFF_MULTIPLIER'],
@@ -34,40 +36,42 @@ def ifinfo(IF_FILENAME):
     iffile.close()
     return if_table
 
+
 def info_from_files(projid, scannum):
     lo_f, if_f = filenames(projid, scannum)
-    lo1 = lofreq(lo_f)
+    lcllo1 = lofreq(lo_f)
     iftab = ifinfo(if_f)
-    return lo1, iftab
+    return lcllo1, iftab
 
-def sky_freq(LO1, if_table, BACKEND_FILENAME):
+
+def sky_freq(local_oscillator1, if_table, backend_fname):
     # sky frequency formula
-    # sky = SFF_SIDEBAND*IF + SFF_MULTIPLIER*LO1 + SFF_OFFSET
+    # sky = sff_sideband * intermediate_frequency + sff_multiplier * local_oscillator1 + sff_offset
 
-    IF = backend_info(BACKEND_FILENAME)
-    SFF_SIDEBAND,SFF_MULTIPLIER,SFF_OFFSET =  if_table[('VEGAS', 1, 'A')]
+    intermediate_frequency = backend_info(backend_fname)
+    sff_sideband, sff_multiplier, sff_offset = if_table[('VEGAS', 1, 'A')]
 
-    sky = SFF_SIDEBAND*IF + SFF_MULTIPLIER*LO1 + SFF_OFFSET
+    return sff_sideband * intermediate_frequency + sff_multiplier * local_oscillator1 + sff_offset
 
-    return sky
 
-def backend_info(BACKEND_FILENAME):
-    # IF(channel) = CRVAL1 + CDELT1 * (channel - CRPIX1)
+def backend_info(backend_fname):
+    # IF(channel) = crval1 + cdelt1 * (channel - crpix1)
     # these come from the backend fits file or **manager stream**
-    vegas = pyfits.open(BACKEND_FILENAME)
-    CRPIX1 = vegas['SAMPLER'].header['CRPIX1']
-    CRVAL1 = vegas['SAMPLER'].data['CRVAL1'][0]
-    CDELT1 = vegas['SAMPLER'].data['CDELT1'][0]
+    vegas = pyfits.open(backend_fname)
+    crpix1 = vegas['SAMPLER'].header['crpix1']
+    crval1 = vegas['SAMPLER'].data['crval1'][0]
+    cdelt1 = vegas['SAMPLER'].data['cdelt1'][0]
 
-    logging.debug('CRPIX1 {}'.format(CRPIX1))
-    logging.debug('CRVAL1 {}'.format(CRVAL1))
-    logging.debug('CDELT1 {}'.format(CDELT1))
+    logging.debug('crpix1 {}'.format(crpix1))
+    logging.debug('crval1 {}'.format(crval1))
+    logging.debug('cdelt1 {}'.format(cdelt1))
 
     nchan = vegas['PRIMARY'].header['NCHAN']
-    IF = CRVAL1 + CDELT1 * (nchan/2 - CRPIX1)
+    intermediate_frequency = crval1 + cdelt1 * (nchan/2 - crpix1)
     vegas.close()
 
-    return IF
+    return intermediate_frequency
+
 
 if __name__ == "__main__":
     """Usage: read_file_data.py AGBT13B_312_01 35"""
@@ -76,7 +80,7 @@ if __name__ == "__main__":
     scan = int(sys.argv[2])
 
     lo1, if_info = info_from_files(project, scan)
-    BACKEND_FILENAME = '/lustre/gbtdata/{proj}/VEGAS/2014_03_11_09:31:34E.fits'.format(proj=project)
+    backend_filename = '/lustre/gbtdata/{proj}/VEGAS/2014_03_11_09:31:34E.fits'.format(proj=project)
     
-    sky = sky_freq(lo1, if_info, BACKEND_FILENAME)
+    sky = sky_freq(lo1, if_info, backend_filename)
     logging.debug('{0:.2f} GHz'.format((sky/1e9)))
