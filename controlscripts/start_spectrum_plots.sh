@@ -11,5 +11,5 @@ ${pathdir}/stop_spectrum_plots.sh
 
 for d in a b c d e f g h
 do
-${pathdir}/spectrumplots.py ${d} -v warn &
+${pathdir}/../spectrumplots.py ${d} -v warn &
 done

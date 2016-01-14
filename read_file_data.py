@@ -1,4 +1,8 @@
-from astropy.io import fits as pyfits
+try:
+    from astropy.io import fits as pyfits
+except ImportError:
+    import pyfits
+
 import sys
 import logging
 
@@ -81,6 +85,6 @@ if __name__ == "__main__":
 
     lo1, if_info = info_from_files(project, scan)
     backend_filename = '/lustre/gbtdata/{proj}/VEGAS/2014_03_11_09:31:34E.fits'.format(proj=project)
-    
+
     sky = sky_freq(lo1, if_info, backend_filename)
     logging.debug('{0:.2f} GHz'.format((sky/1e9)))
