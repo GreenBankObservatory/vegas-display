@@ -19,6 +19,7 @@ import Gnuplot
 
 LCLDIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def _get_tcp_url(urls):
     for u in urls:
         if "tcp" in u:
@@ -215,6 +216,7 @@ def _handle_snapshoter(context, bank, bank_info, payload):
     # be empty and the connection attempt below will
     # fail.
     logging.warning('SNAPSHOT {} {} {} interface {}'.format(reqb.major, reqb.minor,
+                                                            reqb.snapshot_url[0], reqb.interface))
 
     major, minor = "VEGAS", "Bank{}Mgr".format(bank)
     if (reqb.major == major and
