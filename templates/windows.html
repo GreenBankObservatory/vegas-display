@@ -5,6 +5,18 @@ $def with (bank)
     <title>VEGAS Bank $(bank)</title>
     <link rel="stylesheet" href="/static/app.css">
     <script>
+      function initbuttons() {
+          var xx = document.querySelectorAll(".btn");
+          for (var i = 0; i < xx.length; i++) {
+              if (xx[i].innerHTML=="$(bank)") {
+                  xx[i].style.background="#3cb0fd";
+              } else {
+                  xx[i].style.background="#ffffff";
+              }
+          }
+          showplots();
+      }
+
       function showplots()
       {
 	  var canvas0 = document.getElementById('canvas0');
@@ -67,7 +79,7 @@ $def with (bank)
 	  image6.src = 'static/$(bank)6.png?=' + Math.random();
 	  image7.src = 'static/$(bank)7.png?=' + Math.random();
 
-	  setTimeout(showplots, 1000);
+	  setTimeout(showplots, 1000*2); // milliseconds
       }
 
       function showwaterfall(win) {
@@ -83,27 +95,32 @@ $def with (bank)
       }
     </script>
   </head>
-  <body onload="showplots()" style="font-size:12px">
-    <button class="btn" type="button" onclick="allbanks()">All banks</button>
-    <button class="btn" type="button" onclick="showbank('A')">A</button>
-    <button class="btn" type="button" onclick="showbank('B')">B</button>
-    <button class="btn" type="button" onclick="showbank('C')">C</button>
-    <button class="btn" type="button" onclick="showbank('D')">D</button>
-    <button class="btn" type="button" onclick="showbank('E')">E</button>
-    <button class="btn" type="button" onclick="showbank('F')">F</button>
-    <button class="btn" type="button" onclick="showbank('G')">G</button>
-    <button class="btn" type="button" onclick="showbank('H')">H</button>
-    <p>Click plots to see dynamic spectra.</p>
-    <!--br/>
-    Waterfall plots:
-    <button class="btn" type="button" onclick="showwaterfall('A',0)">A0</button>
-    <button class="btn" type="button" onclick="showwaterfall('A',1)">A1</button>
-    <button class="btn" type="button" onclick="showwaterfall('A',2)">A2</button>
-    <button class="btn" type="button" onclick="showwaterfall('A',3)">A3</button>
-    <button class="btn" type="button" onclick="showwaterfall('A',4)">A4</button>
-    <button class="btn" type="button" onclick="showwaterfall('A',5)">A5</button>
-    <button class="btn" type="button" onclick="showwaterfall('A',6)">A6</button>
-    <button class="btn" type="button" onclick="showwaterfall('A',7)">A7</button-->
+  <body onload="initbuttons()">
+    <table style="width:1200px">
+      <col width="500">
+      <col width="600">
+      <col width="100">
+      <tr>
+	<td>
+	  <button class="btn" type="button" onclick="allbanks()">All banks</button>
+	  <button class="btn" type="button" onclick="showbank('A')">A</button>
+	  <button class="btn" type="button" onclick="showbank('B')">B</button>
+	  <button class="btn" type="button" onclick="showbank('C')">C</button>
+	  <button class="btn" type="button" onclick="showbank('D')">D</button>
+	  <button class="btn" type="button" onclick="showbank('E')">E</button>
+	  <button class="btn" type="button" onclick="showbank('F')">F</button>
+	  <button class="btn" type="button" onclick="showbank('G')">G</button>
+	  <button class="btn" type="button" onclick="showbank('H')">H</button>
+	</td>
+	<td>
+	  Please send comments to to Joe Masters (jmasters -at- nrao.edu)
+	</td>
+	<td>
+	  <a href="/static/vegas_display_users_guide.html" target="_blank">Help</a>
+	</td>
+      </tr>
+    </table>
+    <p style="font-size:12px">Click plots to see dynamic spectra.</p>
     <div style="position:absolute; top:70px; left:0px">
       <canvas id="canvas0" width="600" height="200" onclick="showwaterfall(0)"></canvas>
     </div>

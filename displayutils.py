@@ -3,6 +3,7 @@ from time import strftime
 from datetime import datetime
 import math
 import array
+import os
 
 import numpy as np
 import zmq
@@ -16,6 +17,7 @@ import server_config as cfg
 import read_file_data as filedata
 import Gnuplot
 
+LCLDIR = os.path.dirname(os.path.abspath(__file__))
 
 def _get_tcp_url(urls):
     for u in urls:
@@ -30,7 +32,7 @@ def _make_dummy_frequencies(n_subbands):
         start = n * 1000
         sf = range(start, start + cfg.NCHANS)
         frequencies.extend(sf)
-    
+
     return frequencies
 
 
@@ -64,7 +66,7 @@ def _sky_frequencies(spectra, subbands, df):
     display_sky_frequencies = []
     for ii, _ in enumerate(spectra):
         ifval = np.array(range(1, df.number_channels+1))
-        # Below I use df.number_channels/2 instead of df.crpix1 because crpix1 
+        # Below I use df.number_channels/2 instead of df.crpix1 because crpix1
         #  is currently holding the incorrect value of 0.
         # That is a bug in the protobuf Data key sent in the stream from
         #  the manager.
@@ -86,7 +88,7 @@ def blank_window_plot(bank, window, state):
     g('set data style lines')
     g.title('Spectrometer {} '
             'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
-    g('set out "static/{}{}.png"'.format(bank, window))
+    g('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
     g('unset key')
     g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
     g.plot('[][0:1] 2')
@@ -101,7 +103,7 @@ def blank_bank_plot(bank, state):
       '9 size 600,200')
     g('set data style lines')
     g.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
-    g('set out "static/{}.png"'.format(bank))
+    g('set out "{}/static/{}.png"'.format(LCLDIR, bank))
     g('unset key')
     g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
     g.plot('[][0:1] 2')
@@ -213,7 +215,6 @@ def _handle_snapshoter(context, bank, bank_info, payload):
     # be empty and the connection attempt below will
     # fail.
     logging.warning('SNAPSHOT {} {} {} interface {}'.format(reqb.major, reqb.minor,
-                                                            reqb.snapshot_url[0], reqb.interface))
 
     major, minor = "VEGAS", "Bank{}Mgr".format(bank)
     if (reqb.major == major and
@@ -239,7 +240,7 @@ def _handle_snapshoter(context, bank, bank_info, payload):
                 logging.warning("Manager {}.{} subscription "
                                 "URL is empty! exiting...".format(major, minor))
     return bank_info, "NoRestart"
-    
+
 
 def _handle_data(sock, key):
     """Do something with the response from a VEGAS bank.
@@ -277,13 +278,27 @@ def _handle_data(sock, key):
             df.ParseFromString(rl[1])
             ff = array.array('f')  # 'f' is typecode for C float
             ff.fromstring(df.data_blob)
-            
+
             n_sig_states = len(set(df.sig_ref_state))
             n_cal_states = len(set(df.cal_state))
             n_subbands = len(set(df.subband))
+
+            problem = False
+            if n_subbands < 1:
+                logging.error("Number of sub-bands is: {}".format(n_subbands))
+                problem = True
+            if n_sig_states < 1:
+                logging.error("Number of sig switching stats is: {}".format(n_sig_states))
+                problem = True
+            if n_cal_states < 1:
+                logging.error("Number of cal states is: {}".format(n_cal_states))
+                problem = True
+            if problem:
+                return None
+
             n_chans, n_samplers, n_states = df.data_dims
             full_res_spectra = np.array(ff)
-            
+
             logging.debug('full_res_spectra {}'.format(full_res_spectra[:10]))
             full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
             # estimate the number of polarizations used to grab the first
@@ -305,19 +320,19 @@ def _handle_data(sock, key):
             # get every n_pols spectrum and subband
             less_spectra = arr[::n_pols]
             subbands = df.subband[::n_pols]
-            
+
             try:
                 sky_freqs = _sky_frequencies(less_spectra, subbands, df)
             except:
                 logging.debug('Frequency information unavailable.  '
                               'Substituting with dummy freq. data.')
                 sky_freqs = _make_dummy_frequencies(n_subbands)
-            
+
             # rebin each of the spectra
             sampled_spectra = []
             for xx in less_spectra:
                 spectrum = xx
-            
+
                 # interpolate over the center channel to remove the VEGAS spike
                 centerchan = int(len(spectrum)/2)
                 spectrum[centerchan] = (spectrum[centerchan - 1] + spectrum[centerchan + 1]) / 2.
@@ -329,18 +344,18 @@ def _handle_data(sock, key):
                 sampled = spectrum[(sampsize/2):len(spectrum)-(sampsize/2)+1:sampsize]
                 logging.debug('sampled spectrum length: {}'.format(len(sampled)))
                 sampled_spectra.extend(sampled.tolist())
-            
+
             spectrum = np.array(zip(sky_freqs, sampled_spectra))
             spectrum = spectrum.reshape((n_subbands, cfg.NCHANS, 2)).tolist()
-            
+
             # sort each spectrum by frequency
             for idx, s in enumerate(spectrum):
                 spectrum[idx] = sorted(s)
-            
+
             project = str(df.project_id)
             scan = int(df.scan_number)
             integration = int(df.integration)
-            
+
             response = (project, scan, integration, np.array(spectrum))
             return response
     else:

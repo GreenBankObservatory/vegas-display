@@ -4,6 +4,9 @@ import sys
 from time import strftime, sleep
 import logging
 import argparse
+import sys
+import os
+import traceback
 
 import zmq
 import Gnuplot
@@ -13,6 +16,8 @@ import gbtzmq.DataStreamUtils as gbtdsu
 import server_config as cfg
 import displayutils
 
+
+LCLDIR = os.path.dirname(os.path.abspath(__file__))
 
 def main(bank):
     mjr, mnr = "VEGAS", "Bank{}Mgr".format(bank)
@@ -91,7 +96,7 @@ def main(bank):
             if state:
                 logging.debug('{} = {}'.format(state_key, state))
 
-            gbank('set out "static/{}.png"'.format(bank))
+            gbank('set out "{}/static/{}.png"'.format(LCLDIR, bank))
 
             # ALWAYS_UPDATE is useful for debugging.
             # Typically, we only want to display data when the VEGAS bank is "Running".
@@ -99,7 +104,7 @@ def main(bank):
                 ready_for_value = True
             else:
                 ready_for_value = (state == 'Running')
-            
+
             if ready_for_value:
                 # Now that we know the bank is ready, we can request data.
                 # This time we send the data_key.
@@ -146,12 +151,13 @@ def main(bank):
                         for window in range(8):
                             gwindow.title('Spec. {} Win. {} '
                                           'Scan {} '
-                                          'Int. {} {}'.format(bank, window, scan, 
+                                          'Int. {} {}'.format(bank, window, scan,
                                                               integration,
                                                               strftime('  %Y-%m-%d %H:%M:%S')))
-                            gwindow('set out "static/{}{}.png"'.format(bank, window))
 
                             # If there is no data for this window, create a blank plot.
+                            gwindow('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
+
                             if window < len(spec):
                                 gwindow('set key default')
                                 gwindow.plot(spec[window])
@@ -167,11 +173,11 @@ def main(bank):
                 for window in range(8):
                     displayutils.blank_window_plot(bank, window, state)
 
-            # pace the data requests    
+            # pace the data requests
             sleep(cfg.UPDATE_RATE)
 
         except KeyboardInterrupt:
-            directory['socket'].close()            
+            directory['socket'].close()
             vegasdata['socket'].close()
             context.term()
             sys.exit(1)
@@ -184,8 +190,8 @@ def main(bank):
                    (context, bank, poller, state_key, directory, vegasdata, request_pending)]
             sys.exit(2)
 
-        except:
-            print "Error"
+        except Exception, err:
+            print "Error", traceback.format_exception(*sys.exc_info())
             sys.exit(3)
 
 if __name__ == '__main__':
@@ -201,5 +207,5 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=cfg.log_level[args.v])
-    
+
     main(args.bank)

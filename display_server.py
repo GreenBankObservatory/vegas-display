@@ -5,13 +5,16 @@ import signal
 import logging
 import os
 
-# Uncomment the next line for PRODUCTION
-# Also, see the application line below with wsgifunc()
-# web.config.debug = False
 
 urls = ('/', 'Banks',
         '/windows', 'Windows',
         '/waterfall', 'Waterfall')
+
+# Uncomment the next line for PRODUCTION
+web.config.debug = False
+
+# Also, see the application line below with wsgifunc()
+# web.config.debug = False
 
 template_dir = os.path.abspath(os.path.dirname(__file__)) + '/templates'
 render = web.template.render(template_dir, cache=False)
@@ -60,7 +63,7 @@ if __name__ == "__main__":
         logging.warning("Caught signal {}".format(sig))
         logging.warning("Shutting down server...")
         application.stop()
-    
+
     # signal register
     signal.signal(signal.SIGINT, sig_handler)
     signal.signal(signal.SIGTERM, sig_handler)

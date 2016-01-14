@@ -100,15 +100,30 @@
     </script>
   </head>
   <body onload="initbuttons()">
-    <button class="btn" type="button" onclick="allbanks()">All banks</button>
-    <button class="btn" type="button" onclick="showbank('A')">A</button>
-    <button class="btn" type="button" onclick="showbank('B')">B</button>
-    <button class="btn" type="button" onclick="showbank('C')">C</button>
-    <button class="btn" type="button" onclick="showbank('D')">D</button>
-    <button class="btn" type="button" onclick="showbank('E')">E</button>
-    <button class="btn" type="button" onclick="showbank('F')">F</button>
-    <button class="btn" type="button" onclick="showbank('G')">G</button>
-    <button class="btn" type="button" onclick="showbank('H')">H</button>
+    <table style="width:1200px">
+      <col width="500">
+      <col width="600">
+      <col width="100">
+      <tr>
+	<td>
+	  <button class="btn" type="button" onclick="allbanks()">All banks</button>
+	  <button class="btn" type="button" onclick="showbank('A')">A</button>
+	  <button class="btn" type="button" onclick="showbank('B')">B</button>
+	  <button class="btn" type="button" onclick="showbank('C')">C</button>
+	  <button class="btn" type="button" onclick="showbank('D')">D</button>
+	  <button class="btn" type="button" onclick="showbank('E')">E</button>
+	  <button class="btn" type="button" onclick="showbank('F')">F</button>
+	  <button class="btn" type="button" onclick="showbank('G')">G</button>
+	  <button class="btn" type="button" onclick="showbank('H')">H</button>
+	</td>
+	<td>
+	  Please send comments to to Joe Masters (jmasters -at- nrao.edu)
+	</td>
+	<td>
+	  <a href="/static/vegas_display_users_guide.html" target="_blank">Help</a>
+	</td>
+      </tr>
+    </table>
     <div style="position:absolute; top:40px; left:0px">
       <canvas id="canvasA" width="600" height="200" onclick="cli('A')"></canvas>
     </div>

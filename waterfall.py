@@ -4,6 +4,9 @@ from time import strftime, sleep
 import logging
 import argparse
 import sys
+import traceback
+import os
+
 import zmq
 import Gnuplot
 import numpy as np
@@ -13,6 +16,8 @@ import gbtzmq.DataStreamUtils as gbtdsu
 import server_config as cfg
 import displayutils
 
+
+LCLDIR = os.path.dirname(os.path.abspath(__file__))
 
 def main(bank):
     mjr, mnr = "VEGAS", "Bank{}Mgr".format(bank)
@@ -56,7 +61,7 @@ def main(bank):
     gwaterfall('set yrange [0:{}]'.format(cfg.NROWS))
     gwaterfall.xlabel('channel')
     gwaterfall.ylabel('integrations past')
-    
+
     data_buffer = []
     for win in range(8):
         data_buffer.append(np.zeros(cfg.NROWS*cfg.NCHANS).reshape((cfg.NROWS, cfg.NCHANS)))
@@ -122,19 +127,19 @@ def main(bank):
 
                             gwaterfall.title('Spec. {} Win. {} '
                                              'Scan {} '
-                                             'Int. {} {}'.format(bank, win, scan, 
+                                             'Int. {} {}'.format(bank, win, scan,
                                                                  integration,
                                                                  strftime('  %Y-%m-%d %H:%M:%S')))
-                            gwaterfall('set out "static/waterfall{}{}.png"'.format(bank, win))
+                            gwaterfall('set out "{}/static/waterfall{}{}.png"'.format(LCLDIR, bank, win))
                             gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0, inline=0)
 
                             gwaterfall.plot(gdata)
 
-            # pace the data requests    
+            # pace the data requests
             sleep(cfg.UPDATE_RATE)
 
         except KeyboardInterrupt:
-            directory['socket'].close()            
+            directory['socket'].close()
             vegasdata['socket'].close()
             context.term()
             sys.exit(1)
@@ -144,8 +149,8 @@ def main(bank):
             print [type(x) for x in
                    (context, bank, poller, state_key, directory, vegasdata, request_pending)]
             sys.exit(2)
-        except:
-            print "Error"
+        except Exception as e:
+            print "Error", traceback.format_exception(*sys.exc_info())
             sys.exit(3)
 
 if __name__ == '__main__':
