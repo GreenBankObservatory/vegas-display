@@ -21,66 +21,68 @@
           showplots();
       }
 
-      function showplots(){
-	  var canvas0 = document.getElementById('canvasA');
-	  var canvas1 = document.getElementById('canvasB');
-	  var canvas2 = document.getElementById('canvasC');
-	  var canvas3 = document.getElementById('canvasD');
-	  var canvas4 = document.getElementById('canvasE');
-	  var canvas5 = document.getElementById('canvasF');
-	  var canvas6 = document.getElementById('canvasG');
-	  var canvas7 = document.getElementById('canvasH');
+      function showplots() {
+	      var canvas0 = document.getElementById('canvasA');
+	      var canvas1 = document.getElementById('canvasB');
+          var canvas2 = document.getElementById('canvasC');
+          var canvas3 = document.getElementById('canvasD');
+          var canvas4 = document.getElementById('canvasE');
+          var canvas5 = document.getElementById('canvasF');
+          var canvas6 = document.getElementById('canvasG');
+          var canvas7 = document.getElementById('canvasH');
     
-	  var ctx0 = canvas0.getContext('2d');
-	  var ctx1 = canvas1.getContext('2d');
-	  var ctx2 = canvas2.getContext('2d');
-	  var ctx3 = canvas3.getContext('2d');
-	  var ctx4 = canvas4.getContext('2d');
-	  var ctx5 = canvas5.getContext('2d');
-	  var ctx6 = canvas6.getContext('2d');
-	  var ctx7 = canvas7.getContext('2d');
+          var ctx0 = canvas0.getContext('2d');
+          var ctx1 = canvas1.getContext('2d');
+          var ctx2 = canvas2.getContext('2d');
+          var ctx3 = canvas3.getContext('2d');
+          var ctx4 = canvas4.getContext('2d');
+          var ctx5 = canvas5.getContext('2d');
+          var ctx6 = canvas6.getContext('2d');
+          var ctx7 = canvas7.getContext('2d');
 
-	  var image0 = new Image();
-	  var image1 = new Image();
-	  var image2 = new Image();
-	  var image3 = new Image();
-	  var image4 = new Image();
-	  var image5 = new Image();
-	  var image6 = new Image();
-	  var image7 = new Image();
+          var image0 = new Image();
+          var image1 = new Image();
+          var image2 = new Image();
+          var image3 = new Image();
+          var image4 = new Image();
+          var image5 = new Image();
+          var image6 = new Image();
+          var image7 = new Image();
 
-	  image0.onload = function() {
-	    ctx0.drawImage(image0, 0, 0);
-	  };
-	  image1.onload = function() {
-	    ctx1.drawImage(image1, 0, 0);
-	  };
-	  image2.onload = function() {
-	    ctx2.drawImage(image2, 0, 0);
-	  };
-	  image3.onload = function() {
-	    ctx3.drawImage(image3, 0, 0);
-	  };
-	  image4.onload = function() {
-	    ctx4.drawImage(image4, 0, 0);
-	  };
-	  image5.onload = function() {
-	    ctx5.drawImage(image5, 0, 0);
-	  };
-	  image6.onload = function() {
-	    ctx6.drawImage(image6, 0, 0);
-	  };
-	  image7.onload = function() {
-	    ctx7.drawImage(image7, 0, 0);
-	  };
-	  image0.src = 'static/A.png?=' + Math.random();
-	  image1.src = 'static/B.png?=' + Math.random();
-	  image2.src = 'static/C.png?=' + Math.random();
-	  image3.src = 'static/D.png?=' + Math.random();
-	  image4.src = 'static/E.png?=' + Math.random();
-	  image5.src = 'static/F.png?=' + Math.random();
-	  image6.src = 'static/G.png?=' + Math.random();
-	  image7.src = 'static/H.png?=' + Math.random();
+          image0.onload = function() {
+            ctx0.drawImage(image0, 0, 0);
+          };
+          image1.onload = function() {
+            ctx1.drawImage(image1, 0, 0);
+          };
+          image2.onload = function() {
+            ctx2.drawImage(image2, 0, 0);
+          };
+          image3.onload = function() {
+            ctx3.drawImage(image3, 0, 0);
+          };
+          image4.onload = function() {
+            ctx4.drawImage(image4, 0, 0);
+          };
+          image5.onload = function() {
+            ctx5.drawImage(image5, 0, 0);
+          };
+          image6.onload = function() {
+            ctx6.drawImage(image6, 0, 0);
+          };
+          image7.onload = function() {
+            ctx7.drawImage(image7, 0, 0);
+          };
+
+          image0.src = 'static/A.png?=' + Math.random();
+          image1.src = 'static/B.png?=' + Math.random();
+          image2.src = 'static/C.png?=' + Math.random();
+          image3.src = 'static/D.png?=' + Math.random();
+          image4.src = 'static/E.png?=' + Math.random();
+          image5.src = 'static/F.png?=' + Math.random();
+          image6.src = 'static/G.png?=' + Math.random();
+          image7.src = 'static/H.png?=' + Math.random();
+
           setTimeout(showplots, 1000*2); // milliseconds
       }
 
@@ -91,6 +93,7 @@
       function allbanks() {
           window.location.href = "/";
       }
+
       function cli(bank) {
          window.location.href = "windows?bank="+bank;
       }

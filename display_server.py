@@ -1,19 +1,21 @@
 #!/usr/bin/env python
 import web
-import sys
 import argparse
 import signal
 import logging
-import threading
 import os
 
 # Uncomment the next line for PRODUCTION
 # Also, see the application line below with wsgifunc()
 # web.config.debug = False
 
-urls = ('/', 'Banks', '/windows', 'Windows', '/waterfall', 'Waterfall')
+urls = ('/', 'Banks',
+        '/windows', 'Windows',
+        '/waterfall', 'Waterfall')
+
 template_dir = os.path.abspath(os.path.dirname(__file__)) + '/templates'
 render = web.template.render(template_dir, cache=False)
+
 # Uncomment .wsgifunc() in the next line for PRODUCTION
 application = web.application(urls, globals())  # .wsgifunc()
 
@@ -25,14 +27,16 @@ log_level = {"err":   logging.ERROR,
 
 
 class Banks:
-    def GET(self):
+    @staticmethod
+    def get(self):
         print 'banks request!!!'
         web.header('Content-Type', 'text/html')
         return render.banks()
 
 
 class Windows:
-    def GET(self):
+    @staticmethod
+    def get(self):
         print 'windows request!!!'
         web.header('Content-Type', 'text/html')
         winp = web.input()
@@ -41,7 +45,8 @@ class Windows:
 
 
 class Waterfall:
-    def GET(self):
+    @staticmethod
+    def get():
         print 'waterfall request!!!'
         web.header('Content-Type', 'text/html')
         winp = web.input()

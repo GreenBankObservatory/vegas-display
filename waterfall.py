@@ -3,42 +3,41 @@
 from time import strftime, sleep
 import logging
 import argparse
-
+import sys
 import zmq
 import Gnuplot
 import numpy as np
 
-import DataStreamUtils as dsutils
+import gbtzmq.DataStreamUtils as gbtdsu
 
 import server_config as cfg
-import utils
+import displayutils
+
 
 def main(bank):
     mjr, mnr = "VEGAS", "Bank{}Mgr".format(bank)
-    state_key = "{}.{}:P:state".format(mjr,mnr)
-    data_key = "{}.{}:Data".format(mjr,mnr)
-    context   = zmq.Context(1)
+    state_key = "{}.{}:P:state".format(mjr, mnr)
+    data_key = "{}.{}:Data".format(mjr, mnr)
+    context = zmq.Context(1)
 
     # get URLs
-    directory = {'url' : None, 'event_url' : None, 'socket' : None}
-    vegasdata = {'url' : None, 'socket' : None}
+    directory = {'url': None, 'event_url': None, 'socket': None}
+    vegasdata = {'url': None, 'socket': None}
     # directory request(device services) and publish(new interfaces) URLs
-    _, directory['url'], directory['event_url'] = dsutils.get_directory_endpoints()
+    _, directory['url'], directory['event_url'] = gbtdsu.get_directory_endpoints()
 
     # VEGAS BankA snapshot URLs
-    vegasdata['url'],_,_ = dsutils.get_service_endpoints(context,
-                                                       directory['url'], mjr, mnr,
-                                                       dsutils.SERV_SNAPSHOT) 
+    vegasdata['url'], _, _ = gbtdsu.get_service_endpoints(context, directory['url'], mjr, mnr, gbtdsu.SERV_SNAPSHOT)
 
     logging.info('directory (request/services)        url: {}'.format(directory['url']))
     logging.info('directory (publish/newinterfaces)   url: {}'.format(directory['event_url']))
     logging.info('vegas snapshot                      url: {}'.format(vegasdata['url']))
 
     # connect sockets
-    directory['socket'] = utils.open_a_socket(context, directory['event_url'], zmq.SUB)
+    directory['socket'] = displayutils.open_a_socket(context, directory['event_url'], zmq.SUB)
     directory['socket'].setsockopt(zmq.SUBSCRIBE, "YgorDirectory:NEW_INTERFACE")
 
-    vegasdata['socket'] = utils.open_a_socket(context, vegasdata['url'], zmq.REQ)
+    vegasdata['socket'] = displayutils.open_a_socket(context, vegasdata['url'], zmq.REQ)
 
     logging.info('directory socket: {}'.format(directory['socket']))
     logging.info('snap socket     : {}'.format(vegasdata['socket']))
@@ -67,24 +66,26 @@ def main(bank):
     reference_integration = None
     while True:
         try:
-            state, request_pending, vegasdata = utils.get_value(context, bank, poller, state_key,
-                                                                directory['socket'], vegasdata,
-                                                                request_pending)
+            state, request_pending, vegasdata = displayutils.get_value(context, bank, poller, state_key,
+                                                                       directory['socket'], vegasdata,
+                                                                       request_pending)
 
             # if the manager was restarted, try again to get the state
             if state == "ManagerRestart":
                 continue
 
             if state:
-                logging.debug('{} = {}'.format(state_key,state))
+                logging.debug('{} = {}'.format(state_key, state))
 
-            if cfg.ALWAYS_UPDATE: ready_for_value = True
-            else: ready_for_value = (state == 'Running')
+            if cfg.ALWAYS_UPDATE:
+                ready_for_value = True
+            else:
+                ready_for_value = (state == 'Running')
 
             if ready_for_value:
-                value, request_pending, vegasdata = utils.get_value(context, bank, poller, data_key,
-                                                                    directory['socket'], vegasdata,
-                                                                    request_pending)
+                value, request_pending, vegasdata = displayutils.get_value(context, bank, poller, data_key,
+                                                                           directory['socket'], vegasdata,
+                                                                           request_pending)
 
                 # if the manager was restarted, try again to get the state
                 if value == "ManagerRestart":
@@ -94,7 +95,7 @@ def main(bank):
                     proj, scan, integration, spec = value
                     logging.debug('{} {} {} {}'.format(proj, scan, integration, spec.shape))
 
-                    if (prevscan,prevint) != (scan,integration) or cfg.ALWAYS_UPDATE:
+                    if (prevscan, prevint) != (scan, integration) or cfg.ALWAYS_UPDATE:
                         if prevscan != scan:
                             update_reference = True
                             logging.debug('new reference. scan changed: {}'.format(scan))
@@ -103,7 +104,7 @@ def main(bank):
                         prevint = integration
                         for win in range(len(spec)):
                             data_buffer[win] = np.roll(data_buffer[win], shift=1, axis=0)
-                            data_buffer[win][0] = spec[win][:,1]
+                            data_buffer[win][0] = spec[win][:, 1]
 
                             if update_reference:
                                 logging.debug('updated reference')
@@ -151,8 +152,8 @@ if __name__ == '__main__':
     # read command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("bank", help="port number to use on the server",
-                        choices=['A','B','C','D','E','F','G','H',
-                                 'a','b','c','d','e','f','g','h'],
+                        choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+                                 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'],
                         type=str.upper)
     parser.add_argument("-v", help="verbosity output level", type=str,
                         choices=('err', 'warn', 'info', 'debug'), default='info')
