@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<style>
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote {
+    margin: 0;
+    padding: 0;
+}
+body {
+    font-family: "Helvetica Neue", Helvetica, "Hiragino Sans GB", Arial, sans-serif;
+    font-size: 13px;
+    line-height: 18px;
+    color: #737373;
+    background-color: white;
+    margin: 10px 13px 10px 13px;
+}
+table {
+	margin: 10px 0 15px 0;
+	border-collapse: collapse;
+}
+td,th {	
+	border: 1px solid #ddd;
+	padding: 3px 10px;
+}
+th {
+	padding: 5px 10px;	
+}
+
+a {
+    color: #0069d6;
+}
+a:hover {
+    color: #0050a3;
+    text-decoration: none;
+}
+a img {
+    border: none;
+}
+p {
+    margin-bottom: 9px;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: #404040;
+    line-height: 36px;
+}
+h1 {
+    margin-bottom: 18px;
+    font-size: 30px;
+}
+h2 {
+    font-size: 24px;
+}
+h3 {
+    font-size: 18px;
+}
+h4 {
+    font-size: 16px;
+}
+h5 {
+    font-size: 14px;
+}
+h6 {
+    font-size: 13px;
+}
+hr {
+    margin: 0 0 19px;
+    border: 0;
+    border-bottom: 1px solid #ccc;
+}
+blockquote {
+    padding: 13px 13px 21px 15px;
+    margin-bottom: 18px;
+    font-family:georgia,serif;
+    font-style: italic;
+}
+blockquote:before {
+    content:"\201C";
+    font-size:40px;
+    margin-left:-10px;
+    font-family:georgia,serif;
+    color:#eee;
+}
+blockquote p {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 18px;
+    margin-bottom: 0;
+    font-style: italic;
+}
+code, pre {
+    font-family: Monaco, Andale Mono, Courier New, monospace;
+}
+code {
+    background-color: #fee9cc;
+    color: rgba(0, 0, 0, 0.75);
+    padding: 1px 3px;
+    font-size: 12px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+}
+pre {
+    display: block;
+    padding: 14px;
+    margin: 0 0 18px;
+    line-height: 16px;
+    font-size: 11px;
+    border: 1px solid #d9d9d9;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+pre code {
+    background-color: #fff;
+    color:#737373;
+    font-size: 11px;
+    padding: 0;
+}
+sup {
+    font-size: 0.83em;
+    vertical-align: super;
+    line-height: 0;
+}
+* {
+	-webkit-print-color-adjust: exact;
+}
+@media screen and (min-width: 914px) {
+    body {
+        width: 854px;
+        margin:10px auto;
+    }
+}
+@media print {
+	body,code,pre code,h1,h2,h3,h4,h5,h6 {
+		color: black;
+	}
+	table, pre {
+		page-break-inside: avoid;
+	}
+}
+</style>
+<title>Real-time VEGAS Data Display</title>
+
+</head>
+<body>
+<h1>Real-time VEGAS Data Display</h1>
+
+<p>The GBT FITS Monitor (GFM) Astrid spectral line plugin is not well-suited for the data volume and rates from the VEGAS spectrometer.  To address this, we developed a web application that reads directly from a data stream produced from the VEGAS monitor and control software.</p>
+
+<p>This guide is meant to help you get started with this simple application.</p>
+
+<p>First of all, the display is currently a "beta" release and only available on the NRAO network.  If you are using this from outside NRAO, you will need to launch a browser in a VNC session.</p>
+
+<p>When you load the page at <a href="https://vegasdisplay-beta.gb.nrao.edu">https://vegasdisplay-beta.gb.nrao.edu</a> you will see a screen that looks something like this:</p>
+
+<p><img src="./ug-banks.png" width="800" alt="Banks" /></p>
+
+<p>Each of the plots represents the latest spectra sampled from the associated bank.  You will see a spectrum plotted for each spectral window, but not for each polarization.  You will see the only first polarization recorded for each window.    A future release with either combine the polarizations or plot all polarizations.</p>
+
+<p>Note that the data is always averaged to 512 channels.  This is done to keep the tool running smoothly and to create images that fit easily within any monitor.</p>
+
+<p>If there is not data to plot, you will see the VEGAS bank manager state in the plot window.  The plots will update every 10 seconds.</p>
+
+<p>If you click on either a bank letter at the top of the page or one of the bank plots, you will get a new page (very similar to the last) that displays a plot for each of the windows for that particular VEGAS spectromter.</p>
+
+<p><img src="./ug-windows.png" width="800" alt="Windows" /></p>
+
+<p>If you click on one of the these window plots, you will get yet another page that displays a "waterfall" plot of the last 100 sampled spectra.  These spectra have the first available integration of the current scan subracted.  This is done as an approximate referene to remove the bandpass shape.  In addition, the latest single spectrum is displayed to the right of the waterfall.</p>
+
+<p>To move back up a level to the window plots, click the letter of the bank you want.  To move up to the highest level where we started, click the "All banks" button.</p>
+
+<p><img src="./ug-waterfall.png" width="800" alt="Waterfall" /></p>
+
+<p>Please direct any comments or questions to Joe Masters (jmasters -at- nrao.edu) or Mark Whitehead (mwhitehe -at- nrao.edu).</p>
+</body>
+</html>

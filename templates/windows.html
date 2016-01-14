@@ -19,67 +19,67 @@ $def with (bank)
 
       function showplots()
       {
-	  var canvas0 = document.getElementById('canvas0');
-	  var canvas1 = document.getElementById('canvas1');
-	  var canvas2 = document.getElementById('canvas2');
-	  var canvas3 = document.getElementById('canvas3');
-	  var canvas4 = document.getElementById('canvas4');
-	  var canvas5 = document.getElementById('canvas5');
-	  var canvas6 = document.getElementById('canvas6');
-	  var canvas7 = document.getElementById('canvas7');
-    
-	  var ctx0 = canvas0.getContext('2d');
-	  var ctx1 = canvas1.getContext('2d');
-	  var ctx2 = canvas2.getContext('2d');
-	  var ctx3 = canvas3.getContext('2d');
-	  var ctx4 = canvas4.getContext('2d');
-	  var ctx5 = canvas5.getContext('2d');
-	  var ctx6 = canvas6.getContext('2d');
-	  var ctx7 = canvas7.getContext('2d');
+          var canvas0 = document.getElementById('canvas0');
+          var canvas1 = document.getElementById('canvas1');
+          var canvas2 = document.getElementById('canvas2');
+          var canvas3 = document.getElementById('canvas3');
+          var canvas4 = document.getElementById('canvas4');
+          var canvas5 = document.getElementById('canvas5');
+          var canvas6 = document.getElementById('canvas6');
+          var canvas7 = document.getElementById('canvas7');
 
-	  var image0 = new Image();
-	  var image1 = new Image();
-	  var image2 = new Image();
-	  var image3 = new Image();
-	  var image4 = new Image();
-	  var image5 = new Image();
-	  var image6 = new Image();
-	  var image7 = new Image();
+          var ctx0 = canvas0.getContext('2d');
+          var ctx1 = canvas1.getContext('2d');
+          var ctx2 = canvas2.getContext('2d');
+          var ctx3 = canvas3.getContext('2d');
+          var ctx4 = canvas4.getContext('2d');
+          var ctx5 = canvas5.getContext('2d');
+          var ctx6 = canvas6.getContext('2d');
+          var ctx7 = canvas7.getContext('2d');
 
-	  image0.onload = function() {
-	    ctx0.drawImage(image0, 0, 0);
-	  };
-	  image1.onload = function() {
-	    ctx1.drawImage(image1, 0, 0);
-	  };
-	  image2.onload = function() {
-	    ctx2.drawImage(image2, 0, 0);
-	  };
-	  image3.onload = function() {
-	    ctx3.drawImage(image3, 0, 0);
-	  };
-	  image4.onload = function() {
-	    ctx4.drawImage(image4, 0, 0);
-	  };
-	  image5.onload = function() {
-	    ctx5.drawImage(image5, 0, 0);
-	  };
-	  image6.onload = function() {
-	    ctx6.drawImage(image6, 0, 0);
-	  };
-	  image7.onload = function() {
-	    ctx7.drawImage(image7, 0, 0);
-	  };
-	  image0.src = 'static/$(bank)0.png?=' + Math.random();
-	  image1.src = 'static/$(bank)1.png?=' + Math.random();
-	  image2.src = 'static/$(bank)2.png?=' + Math.random();
-	  image3.src = 'static/$(bank)3.png?=' + Math.random();
-	  image4.src = 'static/$(bank)4.png?=' + Math.random();
-	  image5.src = 'static/$(bank)5.png?=' + Math.random();
-	  image6.src = 'static/$(bank)6.png?=' + Math.random();
-	  image7.src = 'static/$(bank)7.png?=' + Math.random();
+          var image0 = new Image();
+          var image1 = new Image();
+          var image2 = new Image();
+          var image3 = new Image();
+          var image4 = new Image();
+          var image5 = new Image();
+          var image6 = new Image();
+          var image7 = new Image();
 
-	  setTimeout(showplots, 1000*2); // milliseconds
+          image0.onload = function() {
+            ctx0.drawImage(image0, 0, 0);
+          };
+          image1.onload = function() {
+            ctx1.drawImage(image1, 0, 0);
+          };
+          image2.onload = function() {
+            ctx2.drawImage(image2, 0, 0);
+          };
+          image3.onload = function() {
+            ctx3.drawImage(image3, 0, 0);
+          };
+          image4.onload = function() {
+            ctx4.drawImage(image4, 0, 0);
+          };
+          image5.onload = function() {
+            ctx5.drawImage(image5, 0, 0);
+          };
+          image6.onload = function() {
+            ctx6.drawImage(image6, 0, 0);
+          };
+          image7.onload = function() {
+            ctx7.drawImage(image7, 0, 0);
+          };
+          image0.src = 'static/$(bank)0.png?=' + Math.random();
+          image1.src = 'static/$(bank)1.png?=' + Math.random();
+          image2.src = 'static/$(bank)2.png?=' + Math.random();
+          image3.src = 'static/$(bank)3.png?=' + Math.random();
+          image4.src = 'static/$(bank)4.png?=' + Math.random();
+          image5.src = 'static/$(bank)5.png?=' + Math.random();
+          image6.src = 'static/$(bank)6.png?=' + Math.random();
+          image7.src = 'static/$(bank)7.png?=' + Math.random();
+
+          setTimeout(showplots, 1000*2); // milliseconds
       }
 
       function showwaterfall(win) {

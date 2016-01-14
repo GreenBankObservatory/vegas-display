@@ -19,21 +19,21 @@ $def with (bank,window)
 
       function showplots()
       {
-      var canvas = document.getElementById('myCanvas');
-      var context = canvas.getContext('2d');
-      var waterfallimage = new Image();
-      var spectrumimage = new Image();
+          var canvas = document.getElementById('myCanvas');
+          var context = canvas.getContext('2d');
+          var waterfallimage = new Image();
+          var spectrumimage = new Image();
 
-      waterfallimage.onload = function() {
-        context.drawImage(waterfallimage, 0, 0);
-      };
-      spectrumimage.onload = function() {
-        context.drawImage(spectrumimage, 640, 100);
-      };
-      waterfallimage.src = 'static/waterfall$(bank)$(window).png?=' + Math.random();
-      spectrumimage.src = 'static/$(bank)$(window).png?=' + Math.random();
+          waterfallimage.onload = function() {
+            context.drawImage(waterfallimage, 0, 0);
+          };
+          spectrumimage.onload = function() {
+            context.drawImage(spectrumimage, 640, 100);
+          };
+          waterfallimage.src = 'static/waterfall$(bank)$(window).png?=' + Math.random();
+          spectrumimage.src = 'static/$(bank)$(window).png?=' + Math.random();
 
-      setTimeout(showplots, 1000*2);  // milliseconds
+          setTimeout(showplots, 1000*2);  // milliseconds
       }
 
       function showbank(bank) {

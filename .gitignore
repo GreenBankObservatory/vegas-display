@@ -1,4 +1,6 @@
 *.pyc
 *~
-static/*.png
+static/?.png
+static/??.png
+static/waterfall??.png
 .idea/

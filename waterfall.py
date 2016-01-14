@@ -19,6 +19,7 @@ import displayutils
 
 LCLDIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def main(bank):
     mjr, mnr = "VEGAS", "Bank{}Mgr".format(bank)
     state_key = "{}.{}:P:state".format(mjr, mnr)
