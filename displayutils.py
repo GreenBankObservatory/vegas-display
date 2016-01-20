@@ -4,7 +4,6 @@ from datetime import datetime
 import math
 import array
 import os
-import sys
 
 import numpy as np
 import zmq
@@ -52,7 +51,8 @@ def _sampler_table(df):
                                  df.cdelt1), dtype=sampler_dtype)
     return sampler_table
 
-def _sky_frequencies(spectra, npols, nsubbands, df):
+
+def _sky_frequencies(spectra, nsubbands, df):
 
     # ----------------------  calculate frequencies
 
@@ -365,7 +365,7 @@ def _handle_data(sock, key):
             # subbands = df.subband[::n_pols]
 
             try:
-                sky_freqs = _sky_frequencies(myspectra, n_pols, subbands, df)
+                sky_freqs = _sky_frequencies(myspectra, subbands, df)
             except:
                 logging.debug('Frequency information unavailable.  '
                               'Substituting with dummy freq. data.')

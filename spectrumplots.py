@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 
-import sys
 from time import strftime, sleep
 import logging
 import argparse
@@ -20,6 +19,7 @@ import displayutils
 
 
 LCLDIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def main(bank):
     mjr, mnr = "VEGAS", "Bank{}Mgr".format(bank)
@@ -152,6 +152,8 @@ def main(bank):
                             # in case we have full stokes, only average the first two polarization states
                             if npol >= 2:
                                 npolave = 2
+                            else:
+                                npolave = npol
                             avepol = np.mean(ss[:npolave], axis=0)  # average over polarizations
                             dd = Gnuplot.Data(avepol, title='{}'.format(win))
                             ds.append(dd)
@@ -206,7 +208,7 @@ def main(bank):
             pprint.pprint(traceback.format_exception(*sys.exc_info()))
             sys.exit(2)
 
-        except Exception, err:
+        except Exception, _:
             print "Error", traceback.format_exception(*sys.exc_info())
             sys.exit(3)
 
