@@ -44,7 +44,7 @@ class Windows:
 
 
 class Waterfall:
-    def GET():
+    def GET(self):
         print 'waterfall request!!!'
         web.header('Content-Type', 'text/html')
         winp = web.input()

@@ -4,6 +4,7 @@ from datetime import datetime
 import math
 import array
 import os
+import sys
 
 import numpy as np
 import zmq
@@ -27,20 +28,18 @@ def _get_tcp_url(urls):
     return ""
 
 
-def _make_dummy_frequencies(n_subbands):
+def _make_dummy_frequencies(npols, n_subbands):
     frequencies = []
     for n in range(n_subbands):
         start = n * 1000
         sf = range(start, start + cfg.NCHANS)
-        frequencies.extend(sf)
+        for _ in range(npols):
+            frequencies.extend(sf)
 
     return frequencies
 
 
-def _sky_frequencies(spectra, subbands, df):
-
-    # ----------------------  calculate frequencies
-
+def _sampler_table(df):
     # create a structure resembling the SAMPLER table from
     #   the VEGAS FITS file
     sampler_dtype = [('BANK_A', np.str_, 8), ('PORT_A', int),
@@ -51,15 +50,31 @@ def _sky_frequencies(spectra, subbands, df):
                                  df.bankB, df.portB,
                                  df.subband, df.crval1,
                                  df.cdelt1), dtype=sampler_dtype)
+    return sampler_table
+
+def _sky_frequencies(spectra, npols, nsubbands, df):
+
+    # ----------------------  calculate frequencies
 
     lo1, iffile_info = filedata.info_from_files(df.project_id, df.scan_number)
 
-    backend, port, bank = 'VEGAS', 1, sampler_table['BANK_A'][0]
-    sff_sb, sff_multi, sff_offset = iffile_info[(backend, port, bank)]
+    # NB 'BANK_A' is a column name that could hold ANY bank value
+    # and not necessarily 'A'
+    # The port number is (I think) a unique identifier for polarization
+    #   but it shouldn't matter because frequencies should be the same
+    #   for both polarizations.  So, I just grab the first.  port=1.
 
+    sampler_table = _sampler_table(df)
+    port, bank = 1, sampler_table['BANK_A'][0]
+    _, sff_sb, sff_multi, sff_offset = iffile_info[(port, bank)]
+
+    # The CRVAL1 and CDELT1 value differ with subband, so collect
+    #   all of them for later reference to determine frequencies.
+    # Also, make sure to store a value for each polarization, so that
+    #   the size of the list is the same as the number of spectra.
     crval1 = []
     cdelt1 = []
-    for sb in subbands:
+    for sb in nsubbands:
         mask = sampler_table['SUBBAND'] == sb
         crval1.append(sampler_table[mask]['CRVAL1'][0])
         cdelt1.append(sampler_table[mask]['CDELT1'][0])
@@ -74,7 +89,10 @@ def _sky_frequencies(spectra, subbands, df):
         ifval = crval1[ii] + cdelt1[ii] * (ifval - df.number_channels/2)
         skyfreq = sff_sb * ifval + sff_multi * lo1 + sff_offset
         # only return NCHANS numbers of frequencies for each subband
-        display_sky_frequencies.extend((skyfreq[::df.number_channels/cfg.NCHANS]/1e9).tolist())
+        reduced_skyfreqs = (skyfreq[::df.number_channels/cfg.NCHANS]/1e9).tolist()
+
+        # duplicate frequencies for each polarization
+        display_sky_frequencies.extend(reduced_skyfreqs)
 
     return display_sky_frequencies
 
@@ -285,15 +303,16 @@ def _handle_data(sock, key):
             n_cal_states = len(set(df.cal_state))
             n_subbands = len(set(df.subband))
 
+            logging.debug("Number of sub-bands is: {}".format(n_subbands))
+            logging.debug("Number of sig switching stats is: {}".format(n_sig_states))
+            logging.debug("Number of cal states is: {}".format(n_cal_states))
+
             problem = False
             if n_subbands < 1:
-                logging.error("Number of sub-bands is: {}".format(n_subbands))
                 problem = True
             if n_sig_states < 1:
-                logging.error("Number of sig switching stats is: {}".format(n_sig_states))
                 problem = True
             if n_cal_states < 1:
-                logging.error("Number of cal states is: {}".format(n_cal_states))
                 problem = True
             if problem:
                 return None
@@ -302,7 +321,10 @@ def _handle_data(sock, key):
             full_res_spectra = np.array(ff)
 
             logging.debug('full_res_spectra {}'.format(full_res_spectra[:10]))
+            # change the dimensions of the spectra to be
+            #   STATES, SAMPLERS, CHANNELS
             full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
+
             # estimate the number of polarizations used to grab the first
             # of each subband
             n_pols = (n_samplers/n_subbands)
@@ -310,29 +332,48 @@ def _handle_data(sock, key):
 
             if n_sig_states == 1:
                 # assumes no SIG switching
-                # average the cal-on/off pairs
+                # average the calon/caloff pairs
                 # this reduces the state dimension by 1/2
                 # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
+                # TODO this assumes only cal and sig switching
+                #   if other switching is added in the future, it could
+                #   be an issue.  n_states should == 2.
                 arr = np.mean(full_res_spectra, axis=0)
+
             else:
+                # assume 2 sig states
                 logging.debug('SIG SWITCHING')
-                # get just the first spectrum
-                arr = full_res_spectra[0]
+
+                if n_cal_states == 2:
+                    arr = np.array((np.mean(full_res_spectra[0:2], axis=0),
+                                    np.mean(full_res_spectra[2:4], axis=0)))
+                else:
+                    # assume 1 cal state
+                    arr = full_res_spectra[0]
+
+                # TODO add support for sig/ref switching.  for now just grab the first.
+                arr = arr[0]
+
+            # get data for all polarizations
+            myspectra = arr
+            subbands = df.subband
+
+            # print myspectra.shape
 
             # get every n_pols spectrum and subband
-            less_spectra = arr[::n_pols]
-            subbands = df.subband[::n_pols]
+            # myspectra = arr[::n_pols]
+            # subbands = df.subband[::n_pols]
 
             try:
-                sky_freqs = _sky_frequencies(less_spectra, subbands, df)
+                sky_freqs = _sky_frequencies(myspectra, n_pols, subbands, df)
             except:
                 logging.debug('Frequency information unavailable.  '
                               'Substituting with dummy freq. data.')
-                sky_freqs = _make_dummy_frequencies(n_subbands)
+                sky_freqs = _make_dummy_frequencies(n_pols, n_subbands)
 
             # rebin each of the spectra
             sampled_spectra = []
-            for xx in less_spectra:
+            for xx in myspectra:
                 spectrum = xx
 
                 # interpolate over the center channel to remove the VEGAS spike
@@ -348,7 +389,7 @@ def _handle_data(sock, key):
                 sampled_spectra.extend(sampled.tolist())
 
             spectrum = np.array(zip(sky_freqs, sampled_spectra))
-            spectrum = spectrum.reshape((n_subbands, cfg.NCHANS, 2)).tolist()
+            spectrum = spectrum.reshape((n_subbands, n_pols, cfg.NCHANS, 2)).tolist()
 
             # sort each spectrum by frequency
             for idx, s in enumerate(spectrum):
@@ -358,7 +399,19 @@ def _handle_data(sock, key):
             scan = int(df.scan_number)
             integration = int(df.integration)
 
-            response = (project, scan, integration, np.array(spectrum))
+            # collect the polarization names to display, e.g. "L" or "R"
+            sampler_table = _sampler_table(df)
+
+            _, iffile_info = filedata.info_from_files(project, scan)
+            polname = []
+
+            # print 'number of polarizations', n_pols
+            for pnum in range(1, n_pols+1):
+                port, bank = pnum, sampler_table['BANK_A'][0]
+                pname, _, _, _ = iffile_info[(pnum, bank)]
+                polname.append(pname*2)  # double the string, e.g. 'R' -> 'RR'
+
+            response = (project, scan, integration, polname, np.array(spectrum))
             return response
     else:
         return None

@@ -7,9 +7,11 @@ import argparse
 import sys
 import os
 import traceback
+import pprint
 
 import zmq
 import Gnuplot
+import numpy as np
 
 import gbtzmq.DataStreamUtils as gbtdsu
 
@@ -119,8 +121,11 @@ def main(bank):
                 if value:
                     # It looks like we got some data.
                     # Unpack it and show what we have.
-                    proj, scan, integration, spec = value
-                    logging.debug('{} {} {} {}'.format(proj, scan, integration, spec.shape))
+                    proj, scan, integration, polname, spec = value
+                    logging.debug('{} {} {} {} {}'.format(proj, scan, integration,
+                                                          ','.join([pn for pn in polname]),
+                                                          spec.shape))
+                    nsb, npol, nchan, _ = spec.shape
 
                     # If either the scan or integration number changed, we have something new.
                     if (prevscan, prevint) != (scan, integration) or cfg.ALWAYS_UPDATE:
@@ -141,13 +146,18 @@ def main(bank):
                                     'Int. {} {}'.format(bank, scan, integration, strftime('  %Y-%m-%d %H:%M:%S')))
 
                         # Plot all of the spectra (one for each spectral window) on the same plot window.
+                        # TODO Should we average the polarizations instead?
                         ds = []
                         for win, ss in enumerate(spec):
-                            dd = Gnuplot.Data(ss, title='{}'.format(win))
+                            # in case we have full stokes, only average the first two polarization states
+                            if npol >= 2:
+                                npolave = 2
+                            avepol = np.mean(ss[:npolave], axis=0)  # average over polarizations
+                            dd = Gnuplot.Data(avepol, title='{}'.format(win))
                             ds.append(dd)
                         gbank.plot(*ds)
 
-                        # Now, make a plot for each individual spectral window.
+                        # Now, make a plot for each individual spectral window, all polarizations.
                         for window in range(8):
                             gwindow.title('Spec. {} Win. {} '
                                           'Scan {} '
@@ -155,14 +165,19 @@ def main(bank):
                                                               integration,
                                                               strftime('  %Y-%m-%d %H:%M:%S')))
 
-                            # If there is no data for this window, create a blank plot.
                             gwindow('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
 
                             if window < len(spec):
                                 gwindow('set key default')
-                                gwindow.plot(spec[window])
+                                ps = []
+                                for pnum in range(npol):
+                                    pname = polname[pnum]
+                                    pd = Gnuplot.Data(spec[window][pnum], title='{}'.format(pname))
+                                    ps.append(pd)
+                                gwindow.plot(*ps)
                                 gwindow.clear()
                             else:
+                                # If there is no data for this window, create a blank plot.
                                 displayutils.blank_window_plot(bank, window, state)
                 else:
                     # If there is no bank data at the moment, create a blank plot.
@@ -188,6 +203,7 @@ def main(bank):
             print (context, bank, poller, state_key, directory, vegasdata, request_pending)
             print [type(x) for x in
                    (context, bank, poller, state_key, directory, vegasdata, request_pending)]
+            pprint.pprint(traceback.format_exception(*sys.exc_info()))
             sys.exit(2)
 
         except Exception, err:

@@ -28,15 +28,17 @@ def lofreq(lo_filename):
 
 def ifinfo(if_filename):
     iffile = pyfits.open(if_filename)
+
     # add SFF_SIDEBAND, SFF_MULTIPLIER, SFF_OFFSET to if_table structure
-    # using (BACKEND,PORT,BANK) as the key
+    # using (PORT,BANK) as the key
     if_table = {}
     for x in iffile['IF'].data:
-        key = (x['BACKEND'], x['PORT'], x['BANK'])
+
+        key = (x['PORT'], x['BANK'])
+
         if x['BACKEND'] == 'VEGAS':
-            if_table[key] = (x['SFF_SIDEBAND'],
-                             x['SFF_MULTIPLIER'],
-                             x['SFF_OFFSET'])
+            if_table[key] = (x['POLARIZE'], x['SFF_SIDEBAND'], x['SFF_MULTIPLIER'], x['SFF_OFFSET'])
+
     iffile.close()
     return if_table
 
@@ -53,7 +55,8 @@ def sky_freq(local_oscillator1, if_table, backend_fname):
     # sky = sff_sideband * intermediate_frequency + sff_multiplier * local_oscillator1 + sff_offset
 
     intermediate_frequency = backend_info(backend_fname)
-    sff_sideband, sff_multiplier, sff_offset = if_table[('VEGAS', 1, 'A')]
+    # TODO make the bank be the contents of sampler_table['BANK_A'][0] or a passed in bank name
+    sff_sideband, sff_multiplier, sff_offset = if_table[(1, 'A')]
 
     return sff_sideband * intermediate_frequency + sff_multiplier * local_oscillator1 + sff_offset
 
