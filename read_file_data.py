@@ -50,17 +50,6 @@ def info_from_files(projid, scannum):
     return lcllo1, iftab
 
 
-def sky_freq(local_oscillator1, if_table, backend_fname):
-    # sky frequency formula
-    # sky = sff_sideband * intermediate_frequency + sff_multiplier * local_oscillator1 + sff_offset
-
-    intermediate_frequency = backend_info(backend_fname)
-    # TODO make the bank be the contents of sampler_table['BANK_A'][0] or a passed in bank name
-    sff_sideband, sff_multiplier, sff_offset = if_table[(1, 'A')]
-
-    return sff_sideband * intermediate_frequency + sff_multiplier * local_oscillator1 + sff_offset
-
-
 def backend_info(backend_fname):
     # IF(channel) = crval1 + cdelt1 * (channel - crpix1)
     # these come from the backend fits file or **manager stream**

@@ -358,12 +358,6 @@ def _handle_data(sock, key):
             myspectra = arr
             subbands = df.subband
 
-            # print myspectra.shape
-
-            # get every n_pols spectrum and subband
-            # myspectra = arr[::n_pols]
-            # subbands = df.subband[::n_pols]
-
             try:
                 sky_freqs = _sky_frequencies(myspectra, subbands, df)
             except:

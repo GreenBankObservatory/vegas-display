@@ -146,7 +146,7 @@ def main(bank):
                                     'Int. {} {}'.format(bank, scan, integration, strftime('  %Y-%m-%d %H:%M:%S')))
 
                         # Plot all of the spectra (one for each spectral window) on the same plot window.
-                        # TODO Should we average the polarizations instead?
+                        #   First two polarizations are averaged.
                         ds = []
                         for win, ss in enumerate(spec):
                             # in case we have full stokes, only average the first two polarization states
