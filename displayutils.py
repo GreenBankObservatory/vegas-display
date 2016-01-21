@@ -338,31 +338,29 @@ def _handle_data(sock, key):
                 # TODO this assumes only cal and sig switching
                 #   if other switching is added in the future, it could
                 #   be an issue.  n_states should == 2.
-                arr = np.mean(full_res_spectra, axis=0)
+                myspectra = np.mean(full_res_spectra, axis=0)
 
             else:
                 # assume 2 sig states
                 logging.debug('SIG SWITCHING')
 
                 if n_cal_states == 2:
-                    arr = np.array((np.mean(full_res_spectra[0:2], axis=0),
-                                    np.mean(full_res_spectra[2:4], axis=0)))
+                    myspectra = np.array((np.mean(full_res_spectra[0:2], axis=0),
+                                          np.mean(full_res_spectra[2:4], axis=0)))
                 else:
                     # assume 1 cal state
-                    arr = full_res_spectra[0]
+                    myspectra = full_res_spectra[0]
 
                 # TODO add support for sig/ref switching.  for now just grab the first.
-                arr = arr[0]
+                myspectra = myspectra[0]
 
             # get data for all polarizations
-            myspectra = arr
             subbands = df.subband
 
             try:
                 sky_freqs = _sky_frequencies(myspectra, subbands, df)
             except:
-                logging.debug('Frequency information unavailable.  '
-                              'Substituting with dummy freq. data.')
+                logging.debug('Frequency information unavailable.  Substituting with dummy freq. data.')
                 sky_freqs = _make_dummy_frequencies(n_pols, n_subbands)
 
             # rebin each of the spectra
@@ -383,6 +381,7 @@ def _handle_data(sock, key):
                 sampled_spectra.extend(sampled.tolist())
 
             spectrum = np.array(zip(sky_freqs, sampled_spectra))
+            # The 2 in the following line accounts for the data and frequency axes.
             spectrum = spectrum.reshape((n_subbands, n_pols, cfg.NCHANS, 2)).tolist()
 
             # sort each spectrum by frequency
