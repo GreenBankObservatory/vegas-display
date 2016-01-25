@@ -98,8 +98,11 @@ def main(bank):
                     continue
 
                 if value:
-                    proj, scan, integration, spec = value
-                    logging.debug('{} {} {} {}'.format(proj, scan, integration, spec.shape))
+                    proj, scan, integration, polname, spec = value
+                    logging.debug('{} {} {} {} {}'.format(proj, scan, integration,
+                                                          ','.join([pn for pn in polname]),
+                                                          spec.shape))
+                    nsb, npol, nchan, _ = spec.shape
 
                     if (prevscan, prevint) != (scan, integration) or cfg.ALWAYS_UPDATE:
                         if prevscan != scan:
@@ -108,9 +111,19 @@ def main(bank):
 
                         prevscan = scan
                         prevint = integration
-                        for win in range(len(spec)):
+                        for win, ss in enumerate(spec):
+                            # in case we have full stokes, only average the first two polarization states
+                            if npol >= 2:
+                                npolave = 2
+                            else:
+                                npolave = npol
+                            avepol = np.mean(ss[:npolave], axis=0)  # average over polarizations
+                            
                             data_buffer[win] = np.roll(data_buffer[win], shift=1, axis=0)
-                            data_buffer[win][0] = spec[win][:, 1]
+                            # Get the data portion of the pol-averaged spectrum.
+                            # We don't care about frequencies for the waterfall plot.
+                            # TODO remove this->  we replaced right hand side: = spec[win][:, 1]
+                            data_buffer[win][0] = avepol[:,1]
 
                             if update_reference:
                                 logging.debug('updated reference')
