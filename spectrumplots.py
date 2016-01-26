@@ -125,7 +125,11 @@ def main(bank):
                     logging.debug('{} {} {} {} {}'.format(proj, scan, integration,
                                                           ','.join([pn for pn in polname]),
                                                           spec.shape))
-                    nsb, npol, nchan, _ = spec.shape
+                    # The second dimension is the number of windows or subbands.
+                    #   We don't use it beacuse we loop over the spectra instead.
+                    # The last dimension is always 2 to include frequencies.
+                    # The first dimension is the number of frequency switching states.
+                    nsig, nwin, npol, nchan, _ = spec.shape
 
                     # If either the scan or integration number changed, we have something new.
                     if (prevscan, prevint) != (scan, integration) or cfg.ALWAYS_UPDATE:
@@ -135,7 +139,7 @@ def main(bank):
                         prevint = integration
 
                         # We don't need a plot legend if there is only one spectrum.
-                        if len(spec) == 1:
+                        if nwin == 1:
                             gbank('unset key')
                         else:
                             gbank('set key default')
@@ -148,7 +152,7 @@ def main(bank):
                         # Plot all of the spectra (one for each spectral window) on the same plot window.
                         #   First two polarizations are averaged.
                         ds = []
-                        for win, ss in enumerate(spec):
+                        for win, ss in enumerate(spec[0]):
                             # in case we have full stokes, only average the first two polarization states
                             if npol >= 2:
                                 npolave = 2
@@ -169,13 +173,14 @@ def main(bank):
 
                             gwindow('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
 
-                            if window < len(spec):
+                            if window < len(spec[0]):
                                 gwindow('set key default')
                                 ps = []
-                                for pnum in range(npol):
-                                    pname = polname[pnum]
-                                    pd = Gnuplot.Data(spec[window][pnum], title='{}'.format(pname))
-                                    ps.append(pd)
+                                for signum in range(nsig):
+                                    for pnum in range(npol):
+                                        pname = polname[pnum]
+                                        pd = Gnuplot.Data(spec[signum][window][pnum], title='{}'.format(pname))
+                                        ps.append(pd)
                                 gwindow.plot(*ps)
                                 gwindow.clear()
                             else:

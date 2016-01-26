@@ -102,7 +102,11 @@ def main(bank):
                     logging.debug('{} {} {} {} {}'.format(proj, scan, integration,
                                                           ','.join([pn for pn in polname]),
                                                           spec.shape))
-                    nsb, npol, nchan, _ = spec.shape
+                    # The second dimension is the number of windows or subbands.
+                    #   We don't use it beacuse we loop over the spectra instead.
+                    # The last dimension is always 2 to include frequencies.
+                    # The first dimension is the number of frequency switching states.
+                    nsig, _, npol, nchan, _ = spec.shape
 
                     if (prevscan, prevint) != (scan, integration) or cfg.ALWAYS_UPDATE:
                         if prevscan != scan:
@@ -111,7 +115,7 @@ def main(bank):
 
                         prevscan = scan
                         prevint = integration
-                        for win, ss in enumerate(spec):
+                        for win, ss in enumerate(spec[0]):  # get only the first frequency state
                             # in case we have full stokes, only average the first two polarization states
                             if npol >= 2:
                                 npolave = 2

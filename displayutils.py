@@ -27,13 +27,14 @@ def _get_tcp_url(urls):
     return ""
 
 
-def _make_dummy_frequencies(npols, n_subbands):
+def _make_dummy_frequencies(nsigs, n_subbands, npols):
     frequencies = []
-    for n in range(n_subbands):
-        start = n * 1000
-        sf = range(start, start + cfg.NCHANS)
-        for _ in range(npols):
-            frequencies.extend(sf)
+    for _ in range(nsigs):
+        for n in range(n_subbands):
+            start = n * 1000
+            sf = range(start, start + cfg.NCHANS)
+            for _x in range(npols):
+                frequencies.extend(sf)
 
     return frequencies
 
@@ -52,11 +53,15 @@ def _sampler_table(df):
     return sampler_table
 
 
-def _sky_frequencies(spectra, nsubbands, df):
+def _sky_frequencies(spectra, df):
+
+    # The spectra array dimensions are now:
+    #   sigref, windows, polarizations, channels
+    nsig, nwin, npol, nchan = spectra.shape
 
     # ----------------------  calculate frequencies
 
-    lo1, iffile_info = filedata.info_from_files(df.project_id, df.scan_number)
+    lo1, offset, iffile_info = filedata.info_from_files(df.project_id, df.scan_number)
 
     # NB 'BANK_A' is a column name that could hold ANY bank value
     # and not necessarily 'A'
@@ -70,29 +75,30 @@ def _sky_frequencies(spectra, nsubbands, df):
 
     # The CRVAL1 and CDELT1 value differ with subband, so collect
     #   all of them for later reference to determine frequencies.
-    # Also, make sure to store a value for each polarization, so that
-    #   the size of the list is the same as the number of spectra.
     crval1 = []
     cdelt1 = []
-    for sb in nsubbands:
+    for sb in df.subband:
         mask = sampler_table['SUBBAND'] == sb
         crval1.append(sampler_table[mask]['CRVAL1'][0])
         cdelt1.append(sampler_table[mask]['CDELT1'][0])
 
     display_sky_frequencies = []
-    for ii, _ in enumerate(spectra):
+    for count in range(nwin * npol):
         ifval = np.array(range(1, df.number_channels+1))
         # Below I use df.number_channels/2 instead of df.crpix1 because crpix1
         #  is currently holding the incorrect value of 0.
         # That is a bug in the protobuf Data key sent in the stream from
         #  the manager.
-        ifval = crval1[ii] + cdelt1[ii] * (ifval - df.number_channels/2)
+        ifval = crval1[count] + cdelt1[count] * (ifval - df.number_channels/2)
         skyfreq = sff_sb * ifval + sff_multi * lo1 + sff_offset
+
         # only return NCHANS numbers of frequencies for each subband
         reduced_skyfreqs = (skyfreq[::df.number_channels/cfg.NCHANS]/1e9).tolist()
-
-        # duplicate frequencies for each polarization
         display_sky_frequencies.extend(reduced_skyfreqs)
+
+    # If we have a 2nd switching state, create another frequency vector with the shift.
+    if nsig == 2:
+        display_sky_frequencies.extend([_ + offset/1e9 for _ in display_sky_frequencies])
 
     return display_sky_frequencies
 
@@ -262,6 +268,30 @@ def _handle_snapshoter(context, bank, bank_info, payload):
     return bank_info, "NoRestart"
 
 
+def _trim_spectra(myspectra):
+    nsig, nwin, npol, _ = myspectra.shape
+
+    # rebin each of the spectra
+    sampled_spectra = []
+    for sig in range(nsig):
+        for win in range(nwin):
+            for pol in range(npol):
+                spectrum = myspectra[sig][win][pol]
+
+                # interpolate over the center channel to remove the VEGAS spike
+                centerchan = int(len(spectrum)/2)
+                spectrum[centerchan] = (spectrum[centerchan - 1] + spectrum[centerchan + 1]) / 2.
+                # rebin to NCHANS length
+                logging.debug('raw spectrum length: {}'.format(len(spectrum)))
+                # sample every sampsize channels of the raw spectrum, where
+                # sampsize = 2 ^ (log2(raw_nchans) - log2(display_nchans))
+                sampsize = 2 ** (math.log(len(spectrum), 2) - math.log(cfg.NCHANS, 2))
+                sampled = spectrum[(sampsize/2):len(spectrum)-(sampsize/2)+1:sampsize]
+                logging.debug('sampled spectrum length: {}'.format(len(sampled)))
+                sampled_spectra.extend(sampled.tolist())
+    return sampled_spectra
+
+
 def _handle_data(sock, key):
     """Do something with the response from a VEGAS bank.
 
@@ -304,7 +334,7 @@ def _handle_data(sock, key):
             n_subbands = len(set(df.subband))
 
             logging.debug("Number of sub-bands is: {}".format(n_subbands))
-            logging.debug("Number of sig switching stats is: {}".format(n_sig_states))
+            logging.debug("Number of sig switching states is: {}".format(n_sig_states))
             logging.debug("Number of cal states is: {}".format(n_cal_states))
 
             problem = False
@@ -322,7 +352,7 @@ def _handle_data(sock, key):
 
             logging.debug('full_res_spectra {}'.format(full_res_spectra[:10]))
             # change the dimensions of the spectra to be
-            #   STATES, SAMPLERS, CHANNELS
+            #   STATES (sigref, cal), SAMPLERS (windows, polarizations), CHANNELS
             full_res_spectra = full_res_spectra.reshape(df.data_dims[::-1])
 
             # estimate the number of polarizations used to grab the first
@@ -330,63 +360,45 @@ def _handle_data(sock, key):
             n_pols = (n_samplers/n_subbands)
             logging.debug('polarization estimate: {}'.format(n_pols))
 
-            if n_sig_states == 1:
-                # assumes no SIG switching
-                # average the calon/caloff pairs
-                # this reduces the state dimension by 1/2
-                # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
-                # TODO this assumes only cal and sig switching
-                #   if other switching is added in the future, it could
-                #   be an issue.  n_states should == 2.
-                myspectra = np.mean(full_res_spectra, axis=0)
+            # Reshape the spectra into these dimensions:
+            #   sigref, cals, windows, polarizations, channels
+            full_res_spectra = full_res_spectra.reshape((n_sig_states, n_cal_states, n_subbands, n_pols, n_chans))
 
-            else:
-                # assume 2 sig states
+            # average the calon/caloff pairs
+            # this reduces the state dimension by 1/2
+            # i.e. 2,14,1024 becomes 1,14,1024 or 14,1024
+            # TODO this assumes only cal and sig switching
+            #   if other switching is added in the future, it could
+            #   be an issue.  n_states should == 2.
+            myspectra = np.mean(full_res_spectra, axis=1)
+
+            if n_sig_states == 2:
                 logging.debug('SIG SWITCHING')
 
-                if n_cal_states == 2:
-                    myspectra = np.array((np.mean(full_res_spectra[0:2], axis=0),
-                                          np.mean(full_res_spectra[2:4], axis=0)))
-                else:
-                    # assume 1 cal state
-                    myspectra = full_res_spectra[0]
-
-                # TODO add support for sig/ref switching.  for now just grab the first.
-                myspectra = myspectra[0]
-
-            # get data for all polarizations
-            subbands = df.subband
+            # The spectra array dimensions are now:
+            #   sigref, windows, polarizations, channels
 
             try:
-                sky_freqs = _sky_frequencies(myspectra, subbands, df)
+                sky_freqs = _sky_frequencies(myspectra, df)
             except:
                 logging.debug('Frequency information unavailable.  Substituting with dummy freq. data.')
-                sky_freqs = _make_dummy_frequencies(n_pols, n_subbands)
+                sky_freqs = _make_dummy_frequencies(n_sig_states, n_subbands, n_pols)
 
-            # rebin each of the spectra
-            sampled_spectra = []
-            for xx in myspectra:
-                spectrum = xx
+            # Reduce the number of channels in all spectra to make them easier to display.
+            # This is also where we remove the center spike.
+            sampled_spectra = _trim_spectra(myspectra)
 
-                # interpolate over the center channel to remove the VEGAS spike
-                centerchan = int(len(spectrum)/2)
-                spectrum[centerchan] = (spectrum[centerchan - 1] + spectrum[centerchan + 1]) / 2.
-                # rebin to NCHANS length
-                logging.debug('raw spectrum length: {}'.format(len(spectrum)))
-                # sample every sampsize channels of the raw spectrum, where
-                # sampsize = 2 ^ (log2(raw_nchans) - log2(display_nchans))
-                sampsize = 2 ** (math.log(len(spectrum), 2) - math.log(cfg.NCHANS, 2))
-                sampled = spectrum[(sampsize/2):len(spectrum)-(sampsize/2)+1:sampsize]
-                logging.debug('sampled spectrum length: {}'.format(len(sampled)))
-                sampled_spectra.extend(sampled.tolist())
-
+            # Join the frequencies to the spectra.
             spectrum = np.array(zip(sky_freqs, sampled_spectra))
+
             # The 2 in the following line accounts for the data and frequency axes.
-            spectrum = spectrum.reshape((n_subbands, n_pols, cfg.NCHANS, 2)).tolist()
+            spectrum = spectrum.reshape((n_sig_states, n_subbands, n_pols, cfg.NCHANS, 2)).tolist()
 
             # sort each spectrum by frequency
-            for idx, s in enumerate(spectrum):
-                spectrum[idx] = sorted(s)
+            for sigidx in range(n_sig_states):
+                for winidx in range(n_subbands):
+                    for polidx in range(n_pols):
+                        spectrum[sigidx][winidx][polidx] = sorted(spectrum[sigidx][winidx][polidx])
 
             project = str(df.project_id)
             scan = int(df.scan_number)
@@ -395,7 +407,7 @@ def _handle_data(sock, key):
             # collect the polarization names to display, e.g. "L" or "R"
             sampler_table = _sampler_table(df)
 
-            _, iffile_info = filedata.info_from_files(project, scan)
+            _, _, iffile_info = filedata.info_from_files(project, scan)
             polname = []
 
             # print 'number of polarizations', n_pols

@@ -21,9 +21,16 @@ def filenames(projid, scannum):
 def lofreq(lo_filename):
     lo = pyfits.open(lo_filename)
     local_oscillator_freq = lo['LO1TBL'].data['LO1FREQ'][0]
-    local_oscillator1 = local_oscillator_freq
+
+    # Get the frequency offset information for frequency-switched integrations.
+    offset = 0
+    for x in lo['STATE'].data:
+        if x['SIGREF'] == 1:
+            offset = x['FREQOFF']
+            break
+
     lo.close()
-    return local_oscillator1
+    return local_oscillator_freq, offset
 
 
 def ifinfo(if_filename):
@@ -45,9 +52,9 @@ def ifinfo(if_filename):
 
 def info_from_files(projid, scannum):
     lo_f, if_f = filenames(projid, scannum)
-    lcllo1 = lofreq(lo_f)
+    lcllo1, offset = lofreq(lo_f)
     iftab = ifinfo(if_f)
-    return lcllo1, iftab
+    return lcllo1, offset, iftab
 
 
 def backend_info(backend_fname):
@@ -78,5 +85,3 @@ if __name__ == "__main__":
     lo1, if_info = info_from_files(project, scan)
     backend_filename = '/lustre/gbtdata/{proj}/VEGAS/2014_03_11_09:31:34E.fits'.format(proj=project)
 
-    sky = sky_freq(lo1, if_info, backend_filename)
-    logging.debug('{0:.2f} GHz'.format((sky/1e9)))
