@@ -5,20 +5,22 @@ import signal
 import logging
 import os
 
+PRODUCTION = False
 
 urls = ('/', 'Banks',
         '/windows', 'Windows',
         '/waterfall', 'Waterfall')
 
-# Uncomment the next line for PRODUCTION
-# web.config.debug = False
-# Also, see the application line below with wsgifunc()
+if PRODUCTION:
+    web.config.debug = False
 
 template_dir = os.path.abspath(os.path.dirname(__file__)) + '/templates'
 render = web.template.render(template_dir, cache=False)
 
-# Uncomment .wsgifunc() in the next line for PRODUCTION
-application = web.application(urls, globals())  # .wsgifunc()
+if PRODUCTION:
+    application = web.application(urls, globals()).wsgifunc()
+else:
+    application = web.application(urls, globals())
 
 # configure the logger
 log_level = {"err":   logging.ERROR,
