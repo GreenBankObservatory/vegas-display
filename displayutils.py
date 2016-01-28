@@ -1,5 +1,5 @@
 import logging
-from time import strftime
+from time import strftime, sleep
 from datetime import datetime
 import math
 import array
@@ -94,44 +94,58 @@ def _sky_frequencies(spectra, df):
 
         # only return NCHANS numbers of frequencies for each subband
         reduced_skyfreqs = (skyfreq[::df.number_channels/cfg.NCHANS]/1e9).tolist()
-        display_sky_frequencies.extend(reduced_skyfreqs)
+        display_sky_frequencies.extend(reduced_skyfreqs + offset[0]/1e9)  # 0 represents the frequency signal
 
-    # If we have a 2nd switching state, create another frequency vector with the shift.
-    if nsig == 2:
-        display_sky_frequencies.extend([_ + offset/1e9 for _ in display_sky_frequencies])
+    if nsig > 1:
+        # If we have a 2nd switching state, create another frequency vector with the shift.
+        # offset[1] is the offset for the reference frequency.
+        display_sky_frequencies.extend([_ + offset[1]/1e9 for _ in display_sky_frequencies])
 
     return display_sky_frequencies
 
 
 def blank_window_plot(bank, window, state):
-    g = Gnuplot.Gnuplot(persist=0)
-    g.xlabel('GHz')
-    g.ylabel('counts')
-    g('set term png enhanced font '
-      '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
-      '9 size 600,200')
-    g('set data style lines')
-    g.title('Spectrometer {} '
-            'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
-    g('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
-    g('unset key')
-    g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
-    g.plot('[][0:1] 2')
+
+    for _ in range(10):
+        g = Gnuplot.Gnuplot(persist=0)
+        g.xlabel('GHz')
+        g.ylabel('counts')
+        g('set term png enhanced font '
+          '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
+          '9 size 600,200')
+        g('set data style lines')
+        g.title('Spectrometer {} '
+                'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
+        outfilename = '{}/static/{}{}.png'.format(LCLDIR, bank, window)
+        g('set out "' + outfilename + '"')
+        g('unset key')
+        g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
+        g.plot('[][0:1] 2')
+        # Check to see if this created a non-zero size file.  If so, stop.
+        #   If not, try again.
+        sleep(cfg.PLOT_SLEEP_TIME)
+        if os.stat(outfilename).st_size > 0:
+            break
 
 
 def blank_bank_plot(bank, state):
-    g = Gnuplot.Gnuplot(persist=0)
-    g.xlabel('GHz')
-    g.ylabel('counts')
-    g('set term png enhanced font '
-      '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
-      '9 size 600,200')
-    g('set data style lines')
-    g.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
-    g('set out "{}/static/{}.png"'.format(LCLDIR, bank))
-    g('unset key')
-    g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
-    g.plot('[][0:1] 2')
+    for _ in range(10):
+        g = Gnuplot.Gnuplot(persist=0)
+        g.xlabel('GHz')
+        g.ylabel('counts')
+        g('set term png enhanced font '
+          '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
+          '9 size 600,200')
+        g('set data style lines')
+        g.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
+        outfilename = "{}/static/{}.png".format(LCLDIR, bank)
+        g('set out "' + outfilename + '"')
+        g('unset key')
+        g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
+        g.plot('[][0:1] 2')
+        sleep(cfg.PLOT_SLEEP_TIME)
+        if os.stat(outfilename).st_size > 0:
+            break
 
 
 def get_value(context, bank, poller, key, directory_socket,
@@ -333,9 +347,11 @@ def _handle_data(sock, key):
             n_cal_states = len(set(df.cal_state))
             n_subbands = len(set(df.subband))
 
+            logging.debug("Polarization is: {}".format(df.polarization))
             logging.debug("Number of sub-bands is: {}".format(n_subbands))
             logging.debug("Number of sig switching states is: {}".format(n_sig_states))
             logging.debug("Number of cal states is: {}".format(n_cal_states))
+            logging.debug("Number of polarizations: {}".format(df.number_stokes))
 
             problem = False
             if n_subbands < 1:
@@ -348,6 +364,7 @@ def _handle_data(sock, key):
                 return None
 
             n_chans, n_samplers, n_states = df.data_dims
+
             full_res_spectra = np.array(ff)
 
             logging.debug('full_res_spectra {}'.format(full_res_spectra[:10]))
@@ -363,6 +380,11 @@ def _handle_data(sock, key):
             # Reshape the spectra into these dimensions:
             #   sigref, cals, windows, polarizations, channels
             full_res_spectra = full_res_spectra.reshape((n_sig_states, n_cal_states, n_subbands, n_pols, n_chans))
+
+            # If we have more than two polarizations, only keep the first two.
+            full_res_spectra = full_res_spectra[:,:,:,:2,:]
+            if n_pols > 2:
+                n_pols = 2
 
             # average the calon/caloff pairs
             # this reduces the state dimension by 1/2
@@ -409,8 +431,6 @@ def _handle_data(sock, key):
 
             _, _, iffile_info = filedata.info_from_files(project, scan)
             polname = []
-
-            # print 'number of polarizations', n_pols
             for pnum in range(1, n_pols+1):
                 port, bank = pnum, sampler_table['BANK_A'][0]
                 pname, _, _, _ = iffile_info[(pnum, bank)]

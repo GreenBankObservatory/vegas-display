@@ -23,13 +23,11 @@ def lofreq(lo_filename):
     local_oscillator_freq = lo['LO1TBL'].data['LO1FREQ'][0]
 
     # Get the frequency offset information for frequency-switched integrations.
-    offset = 0
+    offset = {}
     for x in lo['STATE'].data:
-        if x['SIGREF'] == 1:
-            offset = x['FREQOFF']
-            break
-
+        offset[x['SIGREF']] = x['FREQOFF']
     lo.close()
+
     return local_oscillator_freq, offset
 
 

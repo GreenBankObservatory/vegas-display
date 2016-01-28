@@ -98,7 +98,8 @@ def main(bank):
             if state:
                 logging.debug('{} = {}'.format(state_key, state))
 
-            gbank('set out "{}/static/{}.png"'.format(LCLDIR, bank))
+            bankfilename = "{}/static/{}.png".format(LCLDIR, bank)
+            gbank('set out "' + bankfilename + '"')
 
             # ALWAYS_UPDATE is useful for debugging.
             # Typically, we only want to display data when the VEGAS bank is "Running".
@@ -151,17 +152,22 @@ def main(bank):
 
                         # Plot all of the spectra (one for each spectral window) on the same plot window.
                         #   First two polarizations are averaged.
-                        ds = []
-                        for win, ss in enumerate(spec[0]):
-                            # in case we have full stokes, only average the first two polarization states
-                            if npol >= 2:
-                                npolave = 2
-                            else:
-                                npolave = npol
-                            avepol = np.mean(ss[:npolave], axis=0)  # average over polarizations
-                            dd = Gnuplot.Data(avepol, title='{}'.format(win))
-                            ds.append(dd)
-                        gbank.plot(*ds)
+                        for _ in range(10):
+                            ds = []
+                            for win, ss in enumerate(spec[0]):
+                                # in case we have full stokes, only average the first two polarization states
+                                if npol >= 2:
+                                    npolave = 2
+                                else:
+                                    npolave = npol
+                                avepol = np.mean(ss[:npolave], axis=0)  # average over polarizations
+                                dd = Gnuplot.Data(avepol, title='{}'.format(win))
+                                ds.append(dd)
+                            gbank.plot(*ds)
+                            # If we created a non-zero sized file, stop.  Otherwise, keep trying.
+                            sleep(cfg.PLOT_SLEEP_TIME)
+                            if os.stat(bankfilename).st_size > 0:
+                                break
 
                         # Now, make a plot for each individual spectral window, all polarizations.
                         for window in range(8):
@@ -171,18 +177,34 @@ def main(bank):
                                                               integration,
                                                               strftime('  %Y-%m-%d %H:%M:%S')))
 
-                            gwindow('set out "{}/static/{}{}.png"'.format(LCLDIR, bank, window))
+                            windowfilename = "{}/static/{}{}.png".format(LCLDIR, bank, window)
+                            gwindow('set out "' + windowfilename + '"')
 
                             if window < len(spec[0]):
                                 gwindow('set key default')
-                                ps = []
-                                for signum in range(nsig):
-                                    for pnum in range(npol):
-                                        pname = polname[pnum]
-                                        pd = Gnuplot.Data(spec[signum][window][pnum], title='{}'.format(pname))
-                                        ps.append(pd)
-                                gwindow.plot(*ps)
-                                gwindow.clear()
+
+                                for _ in range(10):
+                                    ps = []
+                                    for signum in range(nsig):
+                                        for pnum in range(npol):
+                                            pname = polname[pnum]
+                                            # Label the sig and ref states if both are present.
+                                            if nsig > 1:
+                                                if signum == 0:
+                                                    freqname = 'Sig '
+                                                else:
+                                                    freqname = 'Ref '
+                                            else:
+                                                freqname = ''
+                                            pd = Gnuplot.Data(spec[signum][window][pnum], title='{}{}'.format(freqname, pname))
+                                            ps.append(pd)
+                                    gwindow.plot(*ps)
+                                    gwindow.clear()
+                                    # If we created a non-zero sized file, stop.  Otherwise, keep trying.
+                                    sleep(cfg.PLOT_SLEEP_TIME)
+                                    if os.stat(windowfilename).st_size > 0:
+                                        break
+
                             else:
                                 # If there is no data for this window, create a blank plot.
                                 displayutils.blank_window_plot(bank, window, state)
