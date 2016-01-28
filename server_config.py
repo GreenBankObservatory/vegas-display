@@ -4,7 +4,7 @@ Global options for creating plots and running display server.
 
 import logging
 
-PRODUCTION = False
+PRODUCTION = True
 
 if PRODUCTION:
     ALWAYS_UPDATE = False

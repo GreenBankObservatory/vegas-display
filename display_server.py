@@ -5,7 +5,7 @@ import signal
 import logging
 import os
 
-PRODUCTION = False
+PRODUCTION = True
 
 urls = ('/', 'Banks',
         '/windows', 'Windows',
