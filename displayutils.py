@@ -347,6 +347,8 @@ def _handle_data(sock, key):
             n_cal_states = len(set(df.cal_state))
             n_subbands = len(set(df.subband))
 
+            logging.debug("Project ID is: {}".format(df.project_id))
+            logging.debug("Scan number is: {}".format(df.scan_number))
             logging.debug("Polarization is: {}".format(df.polarization))
             logging.debug("Number of sub-bands is: {}".format(n_subbands))
             logging.debug("Number of sig switching states is: {}".format(n_sig_states))
@@ -399,11 +401,12 @@ def _handle_data(sock, key):
 
             # The spectra array dimensions are now:
             #   sigref, windows, polarizations, channels
-
+            files_available = True
             try:
                 sky_freqs = _sky_frequencies(myspectra, df)
             except:
                 logging.debug('Frequency information unavailable.  Substituting with dummy freq. data.')
+                files_available = False
                 sky_freqs = _make_dummy_frequencies(n_sig_states, n_subbands, n_pols)
 
             # Reduce the number of channels in all spectra to make them easier to display.
@@ -429,12 +432,17 @@ def _handle_data(sock, key):
             # collect the polarization names to display, e.g. "L" or "R"
             sampler_table = _sampler_table(df)
 
-            _, _, iffile_info = filedata.info_from_files(project, scan)
             polname = []
-            for pnum in range(1, n_pols+1):
-                port, bank = pnum, sampler_table['BANK_A'][0]
-                pname, _, _, _ = iffile_info[(pnum, bank)]
-                polname.append(pname*2)  # double the string, e.g. 'R' -> 'RR'
+            if files_available:
+                _, _, iffile_info = filedata.info_from_files(project, scan)
+                
+                for pnum in range(1, n_pols+1):
+                    port, bank = pnum, sampler_table['BANK_A'][0]
+                    pname, _, _, _ = iffile_info[(pnum, bank)]
+                    polname.append(pname*2)  # double the string, e.g. 'R' -> 'RR'
+            else:
+                for pnum in range(1, n_pols+1):
+                    polname.append(str(pnum))
 
             response = (project, scan, integration, polname, np.array(spectrum))
             return response
