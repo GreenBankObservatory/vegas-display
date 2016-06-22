@@ -29,11 +29,16 @@ def main(bank):
     # get URLs
     directory = {'url': None, 'event_url': None, 'socket': None}
     vegasdata = {'url': None, 'socket': None}
-    # directory request(device services) and publish(new interfaces) URLs
-    _, directory['url'], directory['event_url'] = gbtdsu.get_directory_endpoints()
 
-    # VEGAS BankA snapshot URLs
-    vegasdata['url'], _, _ = gbtdsu.get_service_endpoints(context, directory['url'], mjr, mnr, gbtdsu.SERV_SNAPSHOT)
+    try:
+        # directory request(device services) and publish(new interfaces) URLs
+        _, directory['url'], directory['event_url'] = gbtdsu.get_directory_endpoints()
+
+        # VEGAS BankA snapshot URLs
+        vegasdata['url'], _, _ = gbtdsu.get_service_endpoints(context, directory['url'], mjr, mnr, gbtdsu.SERV_SNAPSHOT)
+    except ValueError:
+        logging.error('Could not get directory or service endpoints. Exiting.')
+        sys.exit(1)
 
     logging.info('directory (request/services)        url: {}'.format(directory['url']))
     logging.info('directory (publish/newinterfaces)   url: {}'.format(directory['event_url']))
