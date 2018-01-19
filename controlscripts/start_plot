@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Wrapper for a single instance of a plotting script, i.e. spectrumplots or waterfall
+# Sets the environment, starts the script, and waits for it to terminate
+# usage: start_plot PATH_TO_PLOT_EXEC BANK_ID
+
+if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "usage: start_plot PATH_TO_PLOT_EXEC BANK_ID" >&2
+    exit 1
+fi
+
+function fatal_error() {
+    local reason
+    if [ -z "$1" ]; then
+        reason="UNKOWN ERROR"
+    else
+        reason="$1"
+    fi
+
+    local code
+    if [ -z "$2" ]; then
+        code=1
+    else
+        code="$2"
+    fi
+
+    echo "ERROR: $reason" >&2
+    exit "$code"
+}
+
+source /home/gbt/gbt.bash || fatal_error "Failed to source /home/gbt/gbt.bash"
+source /home/gbt7/newt/McPython.bash || fatal_error "Failed to source /home/gbt7/newt/McPython.bash"
+source /home/gbt7/vegas_display/bin/activate || fatal_error "Failed to source /home/gbt7/vegas_display/bin/activate"
+
+path_to_plot_exec="$1"
+bank_id="$2"
+
+echo "--- Starting $path_to_plot_exec $2 ---"
+$path_to_plot_exec "$bank_id" -v warn
