@@ -33,7 +33,7 @@ source /home/gbt7/newt/McPython.bash || fatal_error "Failed to source /home/gbt7
 source /home/gbt7/vegas_display/bin/activate || fatal_error "Failed to source /home/gbt7/vegas_display/bin/activate"
 
 path_to_plot_exec="$1"
-bank_id="$2"
+shift
 
-echo "--- Starting $path_to_plot_exec $2 ---"
-$path_to_plot_exec "$bank_id" -v warn
+echo "--- Starting $path_to_plot_exec $* ---"
+$path_to_plot_exec "$@"
