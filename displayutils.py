@@ -181,7 +181,7 @@ def get_value(context, bank, poller, key, directory_socket,
 
     # This will block. May unblock if request is serviced, *or*
     # if directory service message is received.
-    logging.debug('poller.sockets', poller.sockets)
+    logging.debug('poller.sockets: %s', poller.sockets)
     socks = dict(poller.poll())
     logging.debug('{} socks {}'.format(strftime('%Y/%m/%d %H:%M:%S'), socks))
 
