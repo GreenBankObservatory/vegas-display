@@ -154,7 +154,7 @@ def main(bank):
                                                                  integration,
                                                                  strftime('  %Y-%m-%d %H:%M:%S')))
                             gwaterfall('set out "{}/static/waterfall{}{}.png"'.format(LCLDIR, bank, win))
-                            gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0, inline=0)
+                            gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0) #, inline=0)
 
                             gwaterfall.plot(gdata)
 
@@ -173,8 +173,9 @@ def main(bank):
                    (context, bank, poller, state_key, directory, vegasdata, request_pending)]
             sys.exit(2)
         except Exception as e:
-            print "Error", traceback.format_exception(*sys.exc_info())
-            sys.exit(3)
+            print "Error encountered. Traceback:", traceback.format_exception(*sys.exc_info())
+            print "Continuing in 5 seconds."
+            sleep(5)
 
 if __name__ == '__main__':
     # read command line arguments
@@ -189,4 +190,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=cfg.log_level[args.v])
+
+    Gnuplot.GnuplotOpts.default_term = cfg.gnuplot_term
+    Gnuplot.GnuplotOpts.prefer_inline_data = cfg.gnuplot_inline_data
+
     main(args.bank)

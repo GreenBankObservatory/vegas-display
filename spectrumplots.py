@@ -239,9 +239,15 @@ def main(bank):
             pprint.pprint(traceback.format_exception(*sys.exc_info()))
             sys.exit(2)
 
+        except zmq.ZMQError:
+            print(sys.exc._info()[0])
+            print "Continuing in 5 seconds."
+            sleep(5)
+            
         except Exception, _:
-            print "Error", traceback.format_exception(*sys.exc_info())
-            sys.exit(3)
+            print "Error encountered. Traceback:", traceback.format_exception(*sys.exc_info())
+            print "Continuing in 5 seconds."
+            sleep(5)
 
 if __name__ == '__main__':
     # read command line arguments
@@ -256,5 +262,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=cfg.log_level[args.v])
+
+    Gnuplot.GnuplotOpts.default_term = cfg.gnuplot_term
+    Gnuplot.GnuplotOpts.prefer_inline_data = cfg.gnuplot_inline_data
 
     main(args.bank)

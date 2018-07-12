@@ -18,6 +18,10 @@ NCHANS = 512  # number of channels for client to display
 UPDATE_RATE = 10  # seconds
 PLOT_SLEEP_TIME = .1  # seconds
 
+# gnuplot config
+gnuplot_term = 'png'
+gnuplot_inline_data = 1
+
 # configure the logger
 log_level = {"err":   logging.ERROR,
              "warn":  logging.WARNING,

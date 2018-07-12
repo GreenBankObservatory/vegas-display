@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# define the display number from a command line argument
-export DISPLAY=:$1
-
 # define a function to check the existence of a file
 #  and source it if it exists
 source_file()
@@ -26,5 +23,5 @@ ${pathdir}/stop_spectrum_plots.sh
 
 for d in a b c d e f g h
 do
-${pathdir}/../spectrumplots.py ${d} -v warn &
+    GDFONTPATH=/usr/share/fonts/liberation GNUPLOT_DEFAULT_GDFONT=LiberationSans-Regular ${pathdir}/../spectrumplots.py ${d} -v warn &
 done
