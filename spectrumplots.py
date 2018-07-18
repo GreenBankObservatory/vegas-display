@@ -31,11 +31,15 @@ def main(bank):
     directory = {'url': None, 'event_url': None, 'socket': None}
     vegasdata = {'url': None, 'socket': None}
 
-    # get the directory "request" (i.e. device services) and "publish" (i.e. new interfaces) URLs
-    _, directory['url'], directory['event_url'] = gbtdsu.get_directory_endpoints()
+    try:
+        # get the directory "request" (i.e. device services) and "publish" (i.e. new interfaces) URLs
+        _, directory['url'], directory['event_url'] = gbtdsu.get_directory_endpoints()
 
-    # get VEGAS bank snapshot URL
-    vegasdata['url'], _, _ = gbtdsu.get_service_endpoints(context, directory['url'], mjr, mnr, gbtdsu.SERV_SNAPSHOT)
+        # get VEGAS bank snapshot URL
+        vegasdata['url'], _, _ = gbtdsu.get_service_endpoints(context, directory['url'], mjr, mnr, gbtdsu.SERV_SNAPSHOT)
+    except ValueError:
+        logging.error('Could not get directory or service endpoints. Exiting.')
+        sys.exit(1)
 
     # print what we know about the URLs
     logging.info('directory (request/services)        url: {}'.format(directory['url']))
@@ -235,9 +239,15 @@ def main(bank):
             pprint.pprint(traceback.format_exception(*sys.exc_info()))
             sys.exit(2)
 
+        except zmq.ZMQError:
+            print(sys.exc._info()[0])
+            print "Continuing in 5 seconds."
+            sleep(5)
+            
         except Exception, _:
-            print "Error", traceback.format_exception(*sys.exc_info())
-            sys.exit(3)
+            print "Error encountered. Traceback:", traceback.format_exception(*sys.exc_info())
+            print "Continuing in 5 seconds."
+            sleep(5)
 
 if __name__ == '__main__':
     # read command line arguments
@@ -252,5 +262,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=cfg.log_level[args.v])
+
+    Gnuplot.GnuplotOpts.default_term = cfg.gnuplot_term
+    Gnuplot.GnuplotOpts.prefer_inline_data = cfg.gnuplot_inline_data
 
     main(args.bank)

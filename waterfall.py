@@ -29,11 +29,16 @@ def main(bank):
     # get URLs
     directory = {'url': None, 'event_url': None, 'socket': None}
     vegasdata = {'url': None, 'socket': None}
-    # directory request(device services) and publish(new interfaces) URLs
-    _, directory['url'], directory['event_url'] = gbtdsu.get_directory_endpoints()
 
-    # VEGAS BankA snapshot URLs
-    vegasdata['url'], _, _ = gbtdsu.get_service_endpoints(context, directory['url'], mjr, mnr, gbtdsu.SERV_SNAPSHOT)
+    try:
+        # directory request(device services) and publish(new interfaces) URLs
+        _, directory['url'], directory['event_url'] = gbtdsu.get_directory_endpoints()
+
+        # VEGAS BankA snapshot URLs
+        vegasdata['url'], _, _ = gbtdsu.get_service_endpoints(context, directory['url'], mjr, mnr, gbtdsu.SERV_SNAPSHOT)
+    except ValueError:
+        logging.error('Could not get directory or service endpoints. Exiting.')
+        sys.exit(1)
 
     logging.info('directory (request/services)        url: {}'.format(directory['url']))
     logging.info('directory (publish/newinterfaces)   url: {}'.format(directory['event_url']))
@@ -149,7 +154,7 @@ def main(bank):
                                                                  integration,
                                                                  strftime('  %Y-%m-%d %H:%M:%S')))
                             gwaterfall('set out "{}/static/waterfall{}{}.png"'.format(LCLDIR, bank, win))
-                            gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0, inline=0)
+                            gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0) #, inline=0)
 
                             gwaterfall.plot(gdata)
 
@@ -168,8 +173,9 @@ def main(bank):
                    (context, bank, poller, state_key, directory, vegasdata, request_pending)]
             sys.exit(2)
         except Exception as e:
-            print "Error", traceback.format_exception(*sys.exc_info())
-            sys.exit(3)
+            print "Error encountered. Traceback:", traceback.format_exception(*sys.exc_info())
+            print "Continuing in 5 seconds."
+            sleep(5)
 
 if __name__ == '__main__':
     # read command line arguments
@@ -184,4 +190,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s',
                         datefmt='%m/%d/%Y %H:%M:%S',
                         level=cfg.log_level[args.v])
+
+    Gnuplot.GnuplotOpts.default_term = cfg.gnuplot_term
+    Gnuplot.GnuplotOpts.prefer_inline_data = cfg.gnuplot_inline_data
+
     main(args.bank)
