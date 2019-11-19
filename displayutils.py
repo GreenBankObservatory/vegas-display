@@ -113,7 +113,7 @@ def blank_window_plot(bank, window, state):
         g('set term png enhanced font '
           '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
           '9 size 600,200')
-        g('set data style lines')
+        g('set style data lines')
         g.title('Spectrometer {} '
                 'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
         outfilename = '{}/static/{}{}.png'.format(LCLDIR, bank, window)
@@ -136,7 +136,7 @@ def blank_bank_plot(bank, state):
         g('set term png enhanced font '
           '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
           '9 size 600,200')
-        g('set data style lines')
+        g('set style data lines')
         g.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
         outfilename = "{}/static/{}.png".format(LCLDIR, bank)
         g('set out "' + outfilename + '"')

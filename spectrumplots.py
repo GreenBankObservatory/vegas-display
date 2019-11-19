@@ -75,7 +75,7 @@ def main(bank):
     gbank('set term png enhanced font '
           '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
           '9 size 600,200')
-    gbank('set data style lines')
+    gbank('set style data lines')
 
     # initialize a plot object for each bank window
     gwindow = Gnuplot.Gnuplot(persist=0)
@@ -84,7 +84,7 @@ def main(bank):
     gwindow('set term png enhanced font '
             '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf" '
             '9 size 600,200')
-    gwindow('set data style lines')
+    gwindow('set style data lines')
 
     while True:
         try:

@@ -62,7 +62,7 @@ def main(bank):
     gwaterfall = Gnuplot.Gnuplot(persist=0)
     gwaterfall('set term png enhanced font '
                '"/usr/share/fonts/liberation/LiberationSans-Regular.ttf"')
-    gwaterfall('set data style image')
+    gwaterfall('set style data image')
     gwaterfall('set xrange [0:{}]'.format(cfg.NCHANS))
     gwaterfall('set yrange [0:{}]'.format(cfg.NROWS))
     gwaterfall.xlabel('channel')
