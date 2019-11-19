@@ -30,8 +30,8 @@ $def with (bank,window)
           spectrumimage.onload = function() {
             context.drawImage(spectrumimage, 640, 100);
           };
-          waterfallimage.src = 'static/waterfall$(bank)$(window).png?=' + Math.random();
-          spectrumimage.src = 'static/$(bank)$(window).png?=' + Math.random();
+          waterfallimage.src = 'plots/waterfall$(bank)$(window).png?=' + Math.random();
+          spectrumimage.src = 'plots/$(bank)$(window).png?=' + Math.random();
 
           setTimeout(showplots, 1000*2);  // milliseconds
       }

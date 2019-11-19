@@ -102,7 +102,7 @@ def main(bank):
             if state:
                 logging.debug('{} = {}'.format(state_key, state))
 
-            bankfilename = "{}/static/{}.png".format(LCLDIR, bank)
+            bankfilename = "{}/plots/{}.png".format(LCLDIR, bank)
             gbank('set out "' + bankfilename + '"')
 
             # ALWAYS_UPDATE is useful for debugging.
@@ -181,7 +181,7 @@ def main(bank):
                                                               integration,
                                                               strftime('  %Y-%m-%d %H:%M:%S')))
 
-                            windowfilename = "{}/static/{}{}.png".format(LCLDIR, bank, window)
+                            windowfilename = "{}/plots/{}{}.png".format(LCLDIR, bank, window)
                             gwindow('set out "' + windowfilename + '"')
 
                             if window < len(spec[0]):

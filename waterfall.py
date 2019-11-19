@@ -153,7 +153,7 @@ def main(bank):
                                              'Int. {} {}'.format(bank, win, scan,
                                                                  integration,
                                                                  strftime('  %Y-%m-%d %H:%M:%S')))
-                            gwaterfall('set out "{}/static/waterfall{}{}.png"'.format(LCLDIR, bank, win))
+                            gwaterfall('set out "{}/plots/waterfall{}{}.png"'.format(LCLDIR, bank, win))
                             gdata = Gnuplot.GridData(np.transpose(data_buffer[win]), binary=0) #, inline=0)
 
                             gwaterfall.plot(gdata)

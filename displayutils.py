@@ -116,7 +116,7 @@ def blank_window_plot(bank, window, state):
         g('set style data lines')
         g.title('Spectrometer {} '
                 'Window {} {}'.format(bank, window, strftime('  %Y-%m-%d %H:%M:%S')))
-        outfilename = '{}/static/{}{}.png'.format(LCLDIR, bank, window)
+        outfilename = '{}/plots/{}{}.png'.format(LCLDIR, bank, window)
         g('set out "' + outfilename + '"')
         g('unset key')
         g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
@@ -138,7 +138,7 @@ def blank_bank_plot(bank, state):
           '9 size 600,200')
         g('set style data lines')
         g.title('Spectrometer {} {}'.format(bank, strftime('  %Y-%m-%d %H:%M:%S')))
-        outfilename = "{}/static/{}.png".format(LCLDIR, bank)
+        outfilename = "{}/plots/{}.png".format(LCLDIR, bank)
         g('set out "' + outfilename + '"')
         g('unset key')
         g('set label "Manager state:  {}" at 0,0.5 center'.format(state))
