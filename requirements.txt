@@ -8,7 +8,7 @@ Jinja2==2.6
 logilab-astng==0.24.3
 logilab-common==0.59.1
 matplotlib==1.2.0
-numpy==1.6.2
+numpy==1.22.0
 protobuf==3.6.1
 pycparser==2.9.1
 pyfits==2.4.0
