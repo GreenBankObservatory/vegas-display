@@ -7,7 +7,7 @@ ipython==0.13.1
 logilab-astng==0.24.3
 logilab-common==0.59.1
 matplotlib==1.2.0
-numpy==1.6.2
+numpy==1.22.0
 pycparser==2.09.1
 pylint==0.28.0
 pyzmq==2.2.0.1
