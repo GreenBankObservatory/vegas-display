@@ -6,7 +6,7 @@ gnuplot-py==1.8
 ipython==0.13.1
 Jinja2==2.6
 logilab-astng==0.24.3
-logilab-common==0.59.1
+logilab-common==0.61.0
 matplotlib==1.2.0
 numpy==1.6.2
 protobuf==3.6.1
